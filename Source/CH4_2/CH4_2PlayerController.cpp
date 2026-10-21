@@ -7,6 +7,10 @@
 #include "CH4_2PlayerState.h"
 #include "CH4_2PlayerStatsWidget.h"
 #include "CH4_2GameState.h"
+#include "CH4_2ChatWidget.h"
+#include "Components/InputComponent.h"
+#include "HAL/PlatformTime.h"
+#include "InputCoreTypes.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "EnhancedInputSubsystems.h"
@@ -16,6 +20,157 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameModeBase.h"
+
+namespace
+{
+	FString ChatSingleLine(const FString& Input)
+	{
+		FString Result = Input;
+		for (TCHAR& Character : Result)
+		{
+			if (Character < TEXT(' ') || Character == 127 || Character == 0x2028 || Character == 0x2029)
+			{
+				Character = TEXT(' ');
+			}
+		}
+		return Result.TrimStartAndEnd();
+	}
+}
+
+void ACH4_2PlayerController::OpenChat()
+{
+	if (!IsLocalPlayerController() || bChatOpen || !ChatWidget || !ChatWidget->BeginChat())
+	{
+		return;
+	}
+	bChatOpen = true;
+	bCursorVisibleBeforeChat = bShowMouseCursor;
+	FlushPressedKeys();
+	// UI-only focus does not clear inputs already stored by Chaos movement.
+	if (ACH4_2Pawn* CurrentVehicle = Cast<ACH4_2Pawn>(GetPawn()))
+	{
+		CurrentVehicle->DoThrottle(0.0f);
+		CurrentVehicle->DoSteering(0.0f);
+		CurrentVehicle->DoBrakeStop();
+		CurrentVehicle->DoHandbrakeStop();
+	}
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(ChatWidget->GetInputFocusTarget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;
+}
+
+void ACH4_2PlayerController::CloseChat()
+{
+	if (!IsLocalPlayerController() || !bChatOpen)
+	{
+		return;
+	}
+	bChatOpen = false;
+	if (ChatWidget)
+	{
+		ChatWidget->EndChat();
+	}
+	FlushPressedKeys();
+	SetInputMode(FInputModeGameOnly());
+	bShowMouseCursor = bCursorVisibleBeforeChat;
+}
+
+void ACH4_2PlayerController::SubmitChatMessage(const FString& Message)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	if (Message.Len() > MaxChatLength)
+	{
+		if (ChatWidget)
+		{
+			ChatWidget->SetFeedback(NSLOCTEXT("CH4_2Chat", "TooLong", "Message limit: 200 characters."));
+		}
+		return;
+	}
+	const FString CleanMessage = ChatSingleLine(Message);
+	if (CleanMessage.IsEmpty())
+	{
+		return;
+	}
+	if (ChatWidget)
+	{
+		ChatWidget->SetFeedback(FText::GetEmpty());
+	}
+	ServerSubmitChat(CleanMessage);
+}
+
+void ACH4_2PlayerController::ServerSubmitChat_Implementation(const FString& Message)
+{
+	const APlayerState* SenderState = GetPlayerState<APlayerState>();
+	if (!HasAuthority() || !GetWorld() || !IsValid(SenderState) || SenderState->GetOwner() != this)
+	{
+		return;
+	}
+	const double Now = FPlatformTime::Seconds();
+	if (Now < NextChatAttemptTime)
+	{
+		if (!bRateLimitNoticeSent)
+		{
+			ClientChatRejected(NSLOCTEXT("CH4_2Chat", "TooFast", "Please wait 0.5 seconds between messages."));
+			bRateLimitNoticeSent = true;
+		}
+		return;
+	}
+	NextChatAttemptTime = Now + ChatIntervalSeconds;
+	bRateLimitNoticeSent = false;
+	if (Message.Len() > MaxChatLength)
+	{
+		ClientChatRejected(NSLOCTEXT("CH4_2Chat", "TooLong", "Message limit: 200 characters."));
+		return;
+	}
+	const FString CleanMessage = ChatSingleLine(Message);
+	if (CleanMessage.IsEmpty())
+	{
+		return;
+	}
+	FString SenderName = ChatSingleLine(SenderState->GetPlayerName()).Left(64);
+	if (SenderName.IsEmpty())
+	{
+		SenderName = FString::Printf(TEXT("Player %d"), SenderState->GetPlayerId());
+	}
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (ACH4_2PlayerController* Recipient = Cast<ACH4_2PlayerController>(It->Get()))
+		{
+			Recipient->ClientReceiveChat(SenderName, CleanMessage);
+		}
+	}
+}
+
+void ACH4_2PlayerController::ClientReceiveChat_Implementation(const FString& SenderName, const FString& Message)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	ChatMessages.Add(FText::Format(NSLOCTEXT("CH4_2Chat", "Message", "{0}: {1}"),
+		FText::FromString(SenderName), FText::FromString(Message)));
+	if (ChatMessages.Num() > MaxChatHistory)
+	{
+		ChatMessages.RemoveAt(0, ChatMessages.Num() - MaxChatHistory);
+	}
+	if (ChatWidget)
+	{
+		ChatWidget->SetHistory(ChatMessages);
+	}
+}
+
+void ACH4_2PlayerController::ClientChatRejected_Implementation(const FText& Reason)
+{
+	if (IsLocalPlayerController() && ChatWidget)
+	{
+		ChatWidget->SetFeedback(Reason);
+	}
+}
 
 void ACH4_2PlayerController::BeginPlay()
 {
@@ -42,10 +197,30 @@ void ACH4_2PlayerController::BeginPlay()
 		}
 		
 
-		PlayerStatsWidget = CreateWidget<UCH4_2PlayerStatsWidget>(this, UCH4_2PlayerStatsWidget::StaticClass());
+		if (PlayerStatsWidgetClass)
+		{
+			PlayerStatsWidget = CreateWidget<UCH4_2PlayerStatsWidget>(this, PlayerStatsWidgetClass);
+		}
 		if (PlayerStatsWidget)
 		{
 			PlayerStatsWidget->AddToPlayerScreen(10);
+		}
+		else
+		{
+			UE_LOG(LogCH4_2, Error, TEXT("Assign WBP_PlayerStats to PlayerStatsWidgetClass on the player controller BP."));
+		}
+		if (ChatWidgetClass)
+		{
+			ChatWidget = CreateWidget<UCH4_2ChatWidget>(this, ChatWidgetClass);
+		}
+		if (ChatWidget)
+		{
+			ChatWidget->AddToPlayerScreen(20);
+			ChatWidget->SetHistory(ChatMessages);
+		}
+		else
+		{
+			UE_LOG(LogCH4_2, Error, TEXT("Assign WBP_Chat to ChatWidgetClass on the player controller BP."));
 		}
 		BindPlayerStats();
 		GameStateSetHandle = GetWorld()->GameStateSetEvent.AddUObject(this, &ACH4_2PlayerController::BindMatchState);
@@ -91,6 +266,15 @@ void ACH4_2PlayerController::CleanupPlayerState()
 
 void ACH4_2PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// No focus transfer during world teardown; just release the local widget.
+	bChatOpen = false;
+	if (ChatWidget)
+	{
+		ChatWidget->EndChat();
+		ChatWidget->RemoveFromParent();
+		ChatWidget = nullptr;
+	}
+	ChatMessages.Empty();
 	if (GetWorld())
 	{
 		GetWorld()->GameStateSetEvent.Remove(GameStateSetHandle);
@@ -278,6 +462,10 @@ void ACH4_2PlayerController::CHStatsAddSpeed(int32 PlayerId, float Amount)
 void ACH4_2PlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+	if (IsLocalPlayerController() && InputComponent)
+	{
+		InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ACH4_2PlayerController::OpenChat);
+	}
 	
 	// only add IMCs for local player controllers
 	if (IsLocalPlayerController())

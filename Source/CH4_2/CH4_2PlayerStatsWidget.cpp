@@ -1,39 +1,19 @@
 #include "CH4_2PlayerStatsWidget.h"
-#include "Blueprint/WidgetTree.h"
-#include "Components/Border.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
+
+
+
+
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
+
 
 #define LOCTEXT_NAMESPACE "CH4_2PlayerStats"
 
-TSharedRef<SWidget> UCH4_2PlayerStatsWidget::RebuildWidget()
+void UCH4_2PlayerStatsWidget::NativeConstruct()
 {
-	if (WidgetTree && !WidgetTree->RootWidget)
-	{
-		UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("StatsRoot"));
-		WidgetTree->RootWidget = Root;
-		UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StatsPanel"));
-		Panel->SetBrushColor(FLinearColor(0.02f, 0.02f, 0.02f, 0.8f));
-		Panel->SetPadding(FMargin(16.0f));
-		UCanvasPanelSlot* PanelSlot = Root->AddChildToCanvas(Panel);
-		PanelSlot->SetPosition(FVector2D(24.0f, 24.0f));
-		PanelSlot->SetAutoSize(true);
-
-		UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("StatsLines"));
-		Panel->SetContent(Lines);
-		CoinsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CoinsText"));
-		BonusSpeedText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("BonusSpeedText"));
-		Lines->AddChildToVerticalBox(CoinsText);
-		Lines->AddChildToVerticalBox(BonusSpeedText);
-		MatchText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("MatchText"));
-		Lines->AddChildToVerticalBox(MatchText);
-	}
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-	RefreshText();
-	RefreshMatchText();
-	return Super::RebuildWidget();
+    Super::NativeConstruct();
+    SetVisibility(ESlateVisibility::HitTestInvisible);
+    RefreshText();
+    RefreshMatchText();
 }
 
 void UCH4_2PlayerStatsWidget::SetMatchSnapshot(const FCH4_2MatchSnapshot& Snapshot)
@@ -112,3 +92,4 @@ void UCH4_2PlayerStatsWidget::RefreshText()
 }
 
 #undef LOCTEXT_NAMESPACE
+

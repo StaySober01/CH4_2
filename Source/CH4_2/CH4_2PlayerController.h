@@ -13,6 +13,7 @@ class ACH4_2PlayerState;
 class UCH4_2PlayerStatsWidget;
 class ACH4_2GameState;
 class AGameStateBase;
+class UCH4_2ChatWidget;
 
 /**
  *  Vehicle Player Controller class
@@ -66,6 +67,13 @@ protected:
 	/** Pointer to the UI widget */
 	UPROPERTY(Transient)
 	TObjectPtr<UCH4_2UI> VehicleUI;
+
+	/** Assign the generated WBP assets in BP_VehicleAdvPlayerController. */
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UCH4_2PlayerStatsWidget> PlayerStatsWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UCH4_2ChatWidget> ChatWidgetClass;
 		
 protected:
 
@@ -79,6 +87,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void InitPlayerState() override;
 	virtual void CleanupPlayerState() override;
+	void SubmitChatMessage(const FString& Message);
+	void CloseChat();
 
 	/** Local PIE diagnostics only. These are not Server RPCs. */
 	UFUNCTION(Exec)
@@ -112,6 +122,30 @@ protected:
 	void OnPawnDestroyed(AActor* DestroyedPawn);
 
 private:
+	static constexpr int32 MaxChatLength = 200;
+	static constexpr double ChatIntervalSeconds = 0.5;
+	static constexpr int32 MaxChatHistory = 50;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCH4_2ChatWidget> ChatWidget;
+
+	TArray<FText> ChatMessages;
+	bool bChatOpen = false;
+	bool bCursorVisibleBeforeChat = false;
+	double NextChatAttemptTime = 0.0;
+	bool bRateLimitNoticeSent = false;
+
+	void OpenChat();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSubmitChat(const FString& Message);
+
+	UFUNCTION(Client, Reliable)
+	void ClientReceiveChat(const FString& SenderName, const FString& Message);
+
+	UFUNCTION(Client, Reliable)
+	void ClientChatRejected(const FText& Reason);
+
 	UPROPERTY(Transient)
 	TObjectPtr<UCH4_2PlayerStatsWidget> PlayerStatsWidget;
 

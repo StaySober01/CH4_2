@@ -54,3 +54,6 @@ PIE 디버그 Exec 명령은 네트워크 RPC가 아니다. 변경은 PIE 서버
 ## M03 흐름
 PostLogin/Logout → 서버 GameMode의 참가 인원 갱신 → Waiting 카운트다운 시작/취소 → 서버 1초 타이머 → GameState 스냅샷 변경. Host는 서버 변경 이벤트, 원격 Client는 OnRep_MatchSnapshot으로 같은 HUD 갱신 경로를 사용한다. 초기/후입장 표시는 현재 스냅샷을 읽는다. 클라이언트가 시간·단계를 변경하는 RPC는 없다.
 
+
+## M04 채팅 구현 (WBP 생성/연결 및 검증 대기)
+소유 로컬 PC에서 Enter → WBP 입력 → ServerSubmitChat → 서버의 PS 소유 관계/200자/공백/0.5초 검사 → 월드의 각 CH4_2 PC에 ClientReceiveChat → 로컬 기록과 WBP 갱신. 서버에서 정한 이름만 사용하며 Host도 동일 ClientReceiveChat 경로로 한 번 표시한다. 거부 안내는 발신자 PC의 ClientChatRejected로만 전달한다. 위젯 생성보다 수신이 빨라도 PC의 최근 50건 기록을 생성 후 표시한다. 비소유 PC에 Server RPC를 보내는 것은 Unreal 소유 연결 규칙이 거부한다.

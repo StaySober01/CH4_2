@@ -1,27 +1,28 @@
 # 진행 현황
 
-기준일: 2026-10-21. M00 VERIFIED, M01 기본 2인 PIE 확인(일부 예외·편차 잔여), M02 VERIFIED, M03 VERIFIED(사용자 완료 보고).
+기준일: 2026-10-21. M04 IN_PROGRESS: C++ 구현 및 WBP 생성 스크립트 작성, 사용자 빌드 후 에셋 생성/연결 대기.
 
-## M03 구현
-- ACH4_2GameState: Waiting/Playing/Finished와 남은 정수 초, 접속 인원, 카운트다운 활성 여부를 구조체로 공용 복제.
-- ACH4_2GameMode: 서버 PostLogin/Logout 참가자 추적, 2명 접속 시 5초 대기, 60초 경기, 종료. EndPlay 타이머 정리.
-- 대기 중 2명 미만이면 취소하고 다시 모이면 5초부터 시작(사용자 선택).
-- PC: GameStateSetEvent 및 변경 델리게이트 연결, 초기 스냅샷 읽기, 종료 구독 해제.
-- 기존 개인 패널에 경기 상태·시간 표시 추가. 로컬 타이머/Tick 추가 없음.
-- GM-001~003/005~010 VERIFIED. 원문 GM-006의 첫 접속 시작은 사용자 지시로 2명 접속 시작으로 변경.
+## 이번 변경
+- UCH4_2ChatWidget: WBP의 ChatHistory/ChatScroll/MessageInput/FeedbackText BindWidget, Enter 제출과 Escape/포커스 이탈 취소.
+- PC: 소유 PC의 ServerSubmitChat, 서버 검증 후 각 PC ClientReceiveChat, 최근 50건 로컬 기록, 전송 거부 안내.
+- 사용자 확정 200자/0.5초 제한. 발신자 이름은 서버 PS 사용, 공백/제어문자 처리.
+- Enter로 UIOnly 입력 전환, 기존 차량 입력 중립화, 종료 시 GameOnly 복귀.
+- 기존 개인/경기 패널은 네이티브 RebuildWidget을 제거하고 WBP_PlayerStats의 BindWidget으로 전환.
+- Scripts/create_m04_widgets.py: 빌드 후 WBP 두 개 생성 및 BP_VehicleAdvPlayerController 클래스 연결. 미실행이며 WBP 바이너리는 아직 없다.
 
-## 검증
-- 이번 M03에 대해 빌드/UHT/PIE/자동 테스트/작업 후 검사 명령을 실행하지 않았다.
-- 사용자가 M03 안내 후 “검증 완료”를 보고했다. 사용자 수용 보고를 근거로 기록하며 개별 로그/스크린샷은 제공받지 않았다.
-- 기존 M02 이력과 이번 M03 사용자 수용 보고는 testing.md에 구분해 기록했다.
+## 상태와 사용자 작업
+- CHAT-001/004/006: IMPLEMENTED. CHAT-002/003/005: IN_PROGRESS(에셋 생성·연결 필요).
+- M02/M03은 이전 사용자 검증 이력을 보존하되 UI 변경으로 PS-009/GM-007/GM-009 및 통합 마일스톤 재검증 대기.
+- 사용자가 에디터 종료 후 전체 빌드 → Python Editor Script Plugin 활성화 → Tools/Execute Python Script에서 Scripts/create_m04_widgets.py 실행 → WBP/BP Compile·Save → 2인 PIE 확인.
+- 생성 이전에는 개인/경기/채팅 패널이 표시되지 않으며 로그에 클래스 연결 누락이 나온다. 기존 차량 속도·기어 WBP는 유지된다.
+- 에이전트는 빌드/에디터 실행/스크립트 실행/작업 후 검증 명령을 실행하지 않았다.
 
 ## 다음 작업
-- M03 검증 완료 반영. 다음 단계 시작 지시 대기.
-- 다음 지시 후 M04 채팅. 승자 목록/승패는 M09, 상태별 운전 제한은 M13.
-- Playing 중 이탈은 시간 유지, 후입장 시 현재 스냅샷 수신, Finished 자동 재시작 없음.
+- docs/m04-chat-wbp.md에 따라 사용자 생성/검증 결과 수신 후 오류 수정 또는 상태 갱신.
+- 이후 다음 지시에 따라 M05 코인 아이템.
+- 승자 판정 M09, 상태별 운전 잠금 M13, 실제 속도 버프 M06은 아직 범위 밖.
 
-## 잔여 사항
-- Blueprint GameMode의 GameStateClass/PlayerStateClass override는 사용자 확인.
-- M01 전체 Start 점유 예외·리스폰·Scalable/Starter Content 편차는 남아 있다.
-- BonusMaxSpeed 실제 적용/단위는 M06, 재접속 개인 데이터 보존은 미구현.
-
+## 현재 수정 사항: WBP 생성 오류
+- 사용자 생성 스크립트 실행 중 widget_tree 접근 실패. 빈 WBP가 남아 있을 수 있어 에셋 존재/완료를 단정하지 않는다.
+- CH4_2WidgetAuthoringLibrary와 에디터 전용 의존성을 추가하고 Python을 호출용으로 단순화했다.
+- 사용자 에디터 종료/전체 빌드/재시작 후 스크립트 재실행 대기. 에이전트 빌드·검증 미실행.

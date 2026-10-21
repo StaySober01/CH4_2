@@ -7,8 +7,8 @@
 
 class UTextBlock;
 
-/** Native, local-only panel; the template's speed/gear widget stays unchanged. */
-UCLASS()
+/** Data presentation for WBP_PlayerStats; layout belongs to the WBP Designer. */
+UCLASS(Abstract)
 class CH4_2_API UCH4_2PlayerStatsWidget : public UUserWidget
 {
 	GENERATED_BODY()
@@ -20,16 +20,16 @@ public:
 	void SetWaitingForGameState();
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeConstruct() override;
 
 private:
-	UPROPERTY(Transient)
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> CoinsText;
 
-	UPROPERTY(Transient)
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> BonusSpeedText;
 
-	UPROPERTY(Transient)
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> MatchText;
 
 	FCH4_2MatchSnapshot DisplayMatch;

@@ -70,3 +70,9 @@ uproject 명시 플러그인은 Editor용 ModelingToolsEditorMode뿐이다. 설�
 - 기본값 Waiting/0초/비활성 → 2명 접속 Waiting/5초 → Playing/60초 → Finished/0초. 대기 중 인원 미달이면 초기 Waiting으로 복귀.
 - 기존 초기 설계의 첫 접속 시작 조건은 사용자 승인으로 2명 접속으로 대체되었다. 승자 목록은 아직 미구현.
 
+
+## M04 현재 UI 구조 (이전 네이티브 UI 설명을 대체)
+- UCH4_2PlayerStatsWidget은 Abstract 데이터 표시 부모이며 런타임 위젯 트리를 만들지 않는다. WBP_PlayerStats의 CoinsText/BonusSpeedText/MatchText를 BindWidget으로 받는다.
+- UCH4_2ChatWidget은 WBP_Chat의 ChatHistory/ChatScroll/MessageInput/FeedbackText에 연결한다. 텍스트/이벤트만 C++, 레이아웃은 WBP.
+- PC의 PlayerStatsWidgetClass/ChatWidgetClass는 BP 기본값에서 지정한다. 생성 스크립트가 연결하며, 미지정 시 네이티브 대체 UI 대신 오류 로그를 남긴다.
+- Scripts/create_m04_widgets.py는 작성만 했고 WBP 에셋은 아직 미생성. 상세 안내 m04-chat-wbp.md.
