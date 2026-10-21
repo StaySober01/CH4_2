@@ -17,7 +17,8 @@ public class CH4_2 : ModuleRules
 			"ChaosVehicles",
 			"PhysicsCore",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore"
 		});
 
 		PublicIncludePaths.AddRange(new string[] {

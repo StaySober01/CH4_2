@@ -9,6 +9,10 @@
 class UInputMappingContext;
 class ACH4_2Pawn;
 class UCH4_2UI;
+class ACH4_2PlayerState;
+class UCH4_2PlayerStatsWidget;
+class ACH4_2GameState;
+class AGameStateBase;
 
 /**
  *  Vehicle Player Controller class
@@ -73,11 +77,28 @@ protected:
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void InitPlayerState() override;
+	virtual void CleanupPlayerState() override;
+
+	/** Local PIE diagnostics only. These are not Server RPCs. */
+	UFUNCTION(Exec)
+	void CHStatsList();
+
+	UFUNCTION(Exec)
+	void CHStatsAddCoins(int32 PlayerId, int32 Amount);
+
+	UFUNCTION(Exec)
+	void CHStatsSpendCoins(int32 PlayerId, int32 Amount);
+
+	UFUNCTION(Exec)
+	void CHStatsAddSpeed(int32 PlayerId, float Amount);
 
 	/** Update vehicle UI on tick */
 	virtual void Tick(float Delta) override;
 
 protected:
+	virtual void OnRep_PlayerState() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Pawn setup */
 	virtual void OnPossess(APawn* InPawn) override;
@@ -89,4 +110,29 @@ protected:
 	/** Handles pawn destruction and respawning */
 	UFUNCTION()
 	void OnPawnDestroyed(AActor* DestroyedPawn);
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UCH4_2PlayerStatsWidget> PlayerStatsWidget;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ACH4_2PlayerState> BoundPlayerState;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ACH4_2GameState> BoundGameState;
+
+	FDelegateHandle GameStateSetHandle;
+	void BindMatchState(AGameStateBase* NewGameState);
+	void UnbindMatchState();
+
+	UFUNCTION()
+	void RefreshMatchState();
+
+	void BindPlayerStats();
+	void UnbindPlayerStats();
+
+	UFUNCTION()
+	void RefreshPlayerStats();
+
+	ACH4_2PlayerState* FindPIEDebugPlayerState(int32 PlayerId) const;
 };

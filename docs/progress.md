@@ -1,31 +1,27 @@
 # 진행 현황
 
-기준일: 2026-10-21. M00 VERIFIED, M01 IN_PROGRESS. Vehicle 템플릿 도입은 완료했으며 수동 운전 검증은 남아 있다. 마일스톤 기준은 implementation-plan.md의 M00~M14를 따른다.
+기준일: 2026-10-21. M00 VERIFIED, M01 기본 2인 PIE 확인(일부 예외·편차 잔여), M02 VERIFIED, M03 VERIFIED(사용자 완료 보고).
 
-## 완료
-- 단계 1: 프로젝트 분석, 원문 보존, 65개 요구사항 추적, 설계/검증 하네스 작성.
-- UE5.6 TP_VehicleAdv C++/콘텐츠와 Vehicles/Input 공유 콘텐츠를 CH4_2에 도입.
-- ChaosVehicles/RawInput 및 모듈 의존성, 기본 맵/GameMode, 클래스 redirect 연결.
-- 서버 Start 점유 검사, PlayerStart 3개 배치, 소유 클라이언트의 VehiclePawn 참조 복제.
-- 재실행 가능한 Scripts/setup_vehicle_map.py, Scripts/test_vehicle_network.ps1 작성.
+## M03 구현
+- ACH4_2GameState: Waiting/Playing/Finished와 남은 정수 초, 접속 인원, 카운트다운 활성 여부를 구조체로 공용 복제.
+- ACH4_2GameMode: 서버 PostLogin/Logout 참가자 추적, 2명 접속 시 5초 대기, 60초 경기, 종료. EndPlay 타이머 정리.
+- 대기 중 2명 미만이면 취소하고 다시 모이면 5초부터 시작(사용자 선택).
+- PC: GameStateSetEvent 및 변경 델리게이트 연결, 초기 스냅샷 읽기, 종료 구독 해제.
+- 기존 개인 패널에 경기 상태·시간 표시 추가. 로컬 타이머/Tick 추가 없음.
+- GM-001~003/005~010 VERIFIED. 원문 GM-006의 첫 접속 시작은 사용자 지시로 2명 접속 시작으로 변경.
 
 ## 검증
-- UHT/C++ 빌드 성공. 최초 샌드박스 UBA 쓰기 권한 실패 후 승인된 외부 실행으로 성공.
-- 엔진 맵 구성/Blueprint 검사: 0 errors, 0 warnings. PlayerStart 3개 저장.
-- 별도 Listen Host/Client: 서로 다른 위치에 차량 빙의, 원격 Pawn 참조 수신, 로컬 HUD 생성 로그 확인. 프로세스 종료 완료.
-- 실제 화면/키보드 운전/물리 동기화 품질/모든 Start 점유 예외/리스폰은 미검증.
+- 이번 M03에 대해 빌드/UHT/PIE/자동 테스트/작업 후 검사 명령을 실행하지 않았다.
+- 사용자가 M03 안내 후 “검증 완료”를 보고했다. 사용자 수용 보고를 근거로 기록하며 개별 로그/스크린샷은 제공받지 않았다.
+- 기존 M02 이력과 이번 M03 사용자 수용 보고는 testing.md에 구분해 기록했다.
 
-## 다음 단계
-- 사용자 지시 대기. 다음 작업은 M01의 에디터 2인 운전·HUD·예외 검증과 기반 편차 정리. 이후 M02 PlayerState + 개인 HUD를 진행한다.
-- 코인/속도 정책(Q-002~006 등)은 해당 구현 전 결정. 게임 규칙 65개는 모두 TODO.
-- 기존 GameMode/PC/Pawn/UI를 확장한다. 이름을 맞추기 위한 클래스 재작성은 하지 않는다.
+## 다음 작업
+- M03 검증 완료 반영. 다음 단계 시작 지시 대기.
+- 다음 지시 후 M04 채팅. 승자 목록/승패는 M09, 상태별 운전 제한은 M13.
+- Playing 중 이탈은 시간 유지, 후입장 시 현재 스냅샷 수신, Finished 자동 재시작 없음.
 
-## 남은 차이와 제한
-- UE5.6/CH4_2 유지 승인. 과제의 Scalable/Starter Content는 미적용.
-- 원본 템플릿 Reset은 아직 서버 RPC/상태 제한으로 보완되지 않았다.
-- 다른 variants는 함께 도입했으나 활성 과제 맵이 아니며 별도 플레이 검증하지 않았다.
-- 테스트 상세·증거는 testing.md, 변경 범위는 vehicle-template-integration.md 참조.
-
-## 계획 정리 이력
-- 2026-10-21: 기존 단계를 M00~M14 작업 마일스톤으로 재편. 필수 47개/도전 18개에 담당 마일스톤·선행 조건·완료 기준을 연결했다. 이번 변경은 문서만이며 후속 게임 구현은 시작하지 않았다.
+## 잔여 사항
+- Blueprint GameMode의 GameStateClass/PlayerStateClass override는 사용자 확인.
+- M01 전체 Start 점유 예외·리스폰·Scalable/Starter Content 편차는 남아 있다.
+- BonusMaxSpeed 실제 적용/단위는 M06, 재접속 개인 데이터 보존은 미구현.
 

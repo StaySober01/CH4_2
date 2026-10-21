@@ -1,6 +1,6 @@
 # 네트워크 설계
 
-현재 구현: ACH4_2GameMode의 서버 차량 스폰 위치 선택, ACH4_2PlayerController의 VehiclePawn OwnerOnly 복제와 로컬 HUD, 템플릿 Chaos 차량 이동 기반. 별도 Host/Client에서 접속·빙의·참조 수신을 확인했다. 아래 코인/채팅/게임 흐름/공격/아이템/도전 설계는 여전히 미구현이다.
+현재 구현: ACH4_2GameMode의 서버 차량 스폰 위치 선택, ACH4_2PlayerController의 VehiclePawn OwnerOnly 복제와 로컬 HUD, 템플릿 Chaos 차량 이동 기반. 별도 Host/Client에서 접속·빙의·참조 수신을 확인했다. M02의 개인 Coins/BonusMaxSpeed 서버 변경·OwnerOnly 복제·개인 HUD 연결은 사용자 검증 완료 보고를 받았다. M03 게임 흐름/공용 HUD는 사용자 검증 완료 보고를 받았다. 채팅/승패/공격/아이템/도전 설계는 미구현이다.
 
 차량 Reset은 원본 템플릿의 로컬 물리 초기화 방식을 유지한다. 멀티플레이용 서버 요청/게임 상태 제한은 후속 설계·구현이 필요하며 현재 네트워크 완성 기능으로 간주하지 않는다.
 
@@ -27,7 +27,7 @@ PlayerState의 기본 Owner 관계를 유지하고 소유 연결에 실제 도�
 | 공격 | 로컬 좌클릭 → 소유 Pawn ServerFire → 서버 | 소유/빙의·대상·공격 빈도 검사, 범퍼 위치와 방향은 서버에서 산출. Trace → ApplyDamage → 피해 처리 → 피해자 5원 이상이면 -5/+5 |
 | 코인/버프 | 서버 Overlap → 서버 Pickup | 유효 Pawn/PS·중복 획득 검사. +10원 또는 BonusMaxSpeed +10 → 소비 처리 → Destroy |
 | 리스폰 | 서버 OnDestroyed → 서버 Spawner | 기존 아이템 제거, 2초 타이머 후 동일 클래스 생성, 생성 실패/종료 방어 |
-| 매치 | 첫 접속 → 서버 GameMode | Waiting 타이머 1초 감소 → Playing 타이머 → Finished 및 동률 포함 승자 계산 → GameState 복제 |
+| 매치 | 2명 접속 → 서버 GameMode | Waiting 타이머 1초 감소 → Playing 타이머 → Finished 및 동률 포함 승자 계산 → GameState 복제 |
 | 부위 공격 (도전) | ServerFire → ApplyPointDamage | 서버 HitResult Bone 판별, 바퀴일 때 음수 패널티, 서버 타이머로 0까지만 회복 |
 | 지뢰 (도전) | 로컬 F → 소유 Pawn ServerPlaceMine | Playing·빙의·설치 빈도/위치 검사, 뒤쪽 Spawn 및 Owner 설정. 서버 Overlap에서 가속 0, 2초 후 해제 |
 
@@ -42,5 +42,15 @@ PlayerState의 기본 Owner 관계를 유지하고 소유 연결에 실제 도�
 - 지뢰 장애는 소유 클라이언트 입력과 서버 이동 모두에 반영되어야 한다. Owner 설정 자체가 가속 차단을 동기화하지 않는다.
 
 ## 연결 예외
-후입장자는 GameState 스냅샷을 받아야 한다. 재접속·이탈·3번째 접속·종료 후 재시작 정책은 미정이다. 기존 플레이어 수와 무관하게 첫 접속 카운트다운이라는 원문 조건을 보존한다. 차량 물리 예측과 속도 제한은 템플릿 선정 후 Host/Client 각각 검증한다.
+후입장자는 GameState 스냅샷을 받아야 한다. 재접속·이탈·3번째 접속·종료 후 재시작 정책은 미정이다. 원문 첫 접속 카운트다운 조건은 사용자 지시로 2명 접속/5초 대기/60초 경기로 변경했다. 차량 물리 예측과 속도 제한은 템플릿 선정 후 Host/Client 각각 검증한다.
+
+
+## M02 실제 연결
+서버 ACH4_2PlayerState의 AddCoins/TrySpendCoins/IncreaseBonusMaxSpeed → OnStatsChanged → 로컬 Host PC의 RefreshPlayerStats. 소유 Client는 프로퍼티 복제 → OnRep → 동일 이벤트 → 본인 패널 갱신. PC는 처음 연결할 때 값도 읽으므로 알림이 위젯 생성보다 빨라도 초기 표시를 복구한다.
+
+PIE 디버그 Exec 명령은 네트워크 RPC가 아니다. 변경은 PIE 서버 PC에서만 허용하며 Shipping에서는 대상 검색이 항상 실패한다. 일반 클라이언트의 임의 보상 요청 경로를 추가하지 않았다. 자세한 사용자 확인 절차는 m02-player-state.md.
+
+
+## M03 흐름
+PostLogin/Logout → 서버 GameMode의 참가 인원 갱신 → Waiting 카운트다운 시작/취소 → 서버 1초 타이머 → GameState 스냅샷 변경. Host는 서버 변경 이벤트, 원격 Client는 OnRep_MatchSnapshot으로 같은 HUD 갱신 경로를 사용한다. 초기/후입장 표시는 현재 스냅샷을 읽는다. 클라이언트가 시간·단계를 변경하는 RPC는 없다.
 

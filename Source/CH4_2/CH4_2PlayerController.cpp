@@ -4,6 +4,11 @@
 #include "CH4_2PlayerController.h"
 #include "CH4_2Pawn.h"
 #include "CH4_2UI.h"
+#include "CH4_2PlayerState.h"
+#include "CH4_2PlayerStatsWidget.h"
+#include "CH4_2GameState.h"
+#include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
 #include "EnhancedInputSubsystems.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -37,6 +42,15 @@ void ACH4_2PlayerController::BeginPlay()
 		}
 		
 
+		PlayerStatsWidget = CreateWidget<UCH4_2PlayerStatsWidget>(this, UCH4_2PlayerStatsWidget::StaticClass());
+		if (PlayerStatsWidget)
+		{
+			PlayerStatsWidget->AddToPlayerScreen(10);
+		}
+		BindPlayerStats();
+		GameStateSetHandle = GetWorld()->GameStateSetEvent.AddUObject(this, &ACH4_2PlayerController::BindMatchState);
+		BindMatchState(GetWorld()->GetGameState());
+
 		// spawn the UI widget and add it to the viewport
 		VehicleUI = CreateWidget<UCH4_2UI>(this, VehicleUIClass);
 
@@ -50,6 +64,214 @@ void ACH4_2PlayerController::BeginPlay()
 			UE_LOG(LogCH4_2, Error, TEXT("Could not spawn vehicle UI widget."));
 
 		}
+	}
+}
+
+void ACH4_2PlayerController::InitPlayerState()
+{
+	Super::InitPlayerState();
+	BindPlayerStats();
+}
+
+void ACH4_2PlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	BindPlayerStats();
+}
+
+void ACH4_2PlayerController::CleanupPlayerState()
+{
+	UnbindPlayerStats();
+	if (PlayerStatsWidget)
+	{
+		PlayerStatsWidget->SetWaitingForPlayerState();
+	}
+	Super::CleanupPlayerState();
+}
+
+void ACH4_2PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (GetWorld())
+	{
+		GetWorld()->GameStateSetEvent.Remove(GameStateSetHandle);
+	}
+	GameStateSetHandle.Reset();
+	UnbindMatchState();
+	UnbindPlayerStats();
+	if (PlayerStatsWidget)
+	{
+		PlayerStatsWidget->RemoveFromParent();
+		PlayerStatsWidget = nullptr;
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+void ACH4_2PlayerController::BindMatchState(AGameStateBase* NewGameState)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	ACH4_2GameState* CurrentState = Cast<ACH4_2GameState>(NewGameState);
+	if (BoundGameState.Get() != CurrentState)
+	{
+		UnbindMatchState();
+		BoundGameState = CurrentState;
+		if (CurrentState)
+		{
+			CurrentState->OnMatchChanged.AddUniqueDynamic(this, &ACH4_2PlayerController::RefreshMatchState);
+		}
+	}
+	RefreshMatchState();
+}
+
+void ACH4_2PlayerController::UnbindMatchState()
+{
+	if (ACH4_2GameState* PreviousState = BoundGameState.Get())
+	{
+		PreviousState->OnMatchChanged.RemoveDynamic(this, &ACH4_2PlayerController::RefreshMatchState);
+	}
+	BoundGameState.Reset();
+}
+
+void ACH4_2PlayerController::RefreshMatchState()
+{
+	if (!IsLocalPlayerController() || !PlayerStatsWidget)
+	{
+		return;
+	}
+	if (const ACH4_2GameState* CurrentState = BoundGameState.Get())
+	{
+		PlayerStatsWidget->SetMatchSnapshot(CurrentState->GetMatchSnapshot());
+	}
+	else
+	{
+		PlayerStatsWidget->SetWaitingForGameState();
+	}
+}
+
+void ACH4_2PlayerController::BindPlayerStats()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	ACH4_2PlayerState* CurrentState = GetPlayerState<ACH4_2PlayerState>();
+	if (BoundPlayerState.Get() != CurrentState)
+	{
+		UnbindPlayerStats();
+		BoundPlayerState = CurrentState;
+		if (CurrentState)
+		{
+			CurrentState->OnStatsChanged.AddUniqueDynamic(this, &ACH4_2PlayerController::RefreshPlayerStats);
+		}
+	}
+	// Handles both replication before widget creation and replication after it.
+	RefreshPlayerStats();
+}
+
+void ACH4_2PlayerController::UnbindPlayerStats()
+{
+	if (ACH4_2PlayerState* PreviousState = BoundPlayerState.Get())
+	{
+		PreviousState->OnStatsChanged.RemoveDynamic(this, &ACH4_2PlayerController::RefreshPlayerStats);
+	}
+	BoundPlayerState.Reset();
+}
+
+void ACH4_2PlayerController::RefreshPlayerStats()
+{
+	if (!IsLocalPlayerController() || !PlayerStatsWidget)
+	{
+		return;
+	}
+	if (const ACH4_2PlayerState* CurrentState = BoundPlayerState.Get())
+	{
+		PlayerStatsWidget->SetStats(CurrentState->GetCoins(), CurrentState->GetBonusMaxSpeed());
+	}
+	else
+	{
+		PlayerStatsWidget->SetWaitingForPlayerState();
+	}
+}
+
+ACH4_2PlayerState* ACH4_2PlayerController::FindPIEDebugPlayerState(int32 PlayerId) const
+{
+#if !UE_BUILD_SHIPPING
+	if (!HasAuthority() || !GetWorld() || GetWorld()->WorldType != EWorldType::PIE)
+	{
+		UE_LOG(LogCH4_2, Warning, TEXT("Stats change rejected: run this command on the PIE host."));
+		return nullptr;
+	}
+	if (const AGameStateBase* CurrentGameState = GetWorld()->GetGameState())
+	{
+		for (APlayerState* Candidate : CurrentGameState->PlayerArray)
+		{
+			if (IsValid(Candidate) && Candidate->GetPlayerId() == PlayerId)
+			{
+				if (ACH4_2PlayerState* Stats = Cast<ACH4_2PlayerState>(Candidate))
+				{
+					return Stats;
+				}
+				UE_LOG(LogCH4_2, Warning, TEXT("Player %d has the wrong PlayerState class. Check GameMode defaults."), PlayerId);
+				return nullptr;
+			}
+		}
+	}
+	UE_LOG(LogCH4_2, Warning, TEXT("No PlayerState for PlayerId=%d"), PlayerId);
+#endif
+	return nullptr;
+}
+
+void ACH4_2PlayerController::CHStatsList()
+{
+#if !UE_BUILD_SHIPPING
+	if (!GetWorld() || GetWorld()->WorldType != EWorldType::PIE)
+	{
+		return;
+	}
+	if (const AGameStateBase* CurrentGameState = GetWorld()->GetGameState())
+	{
+		for (APlayerState* Candidate : CurrentGameState->PlayerArray)
+		{
+			if (const ACH4_2PlayerState* Stats = Cast<ACH4_2PlayerState>(Candidate))
+			{
+				UE_LOG(LogCH4_2, Log, TEXT("Stats Authority=%d PlayerId=%d Self=%d Coins=%d BonusMaxSpeed=%g"),
+					HasAuthority(), Stats->GetPlayerId(), Stats == PlayerState.Get(), Stats->GetCoins(), Stats->GetBonusMaxSpeed());
+			}
+			else
+			{
+				UE_LOG(LogCH4_2, Warning, TEXT("Unexpected PlayerState: %s. Check GameMode PlayerStateClass."), *GetNameSafe(Candidate));
+			}
+		}
+	}
+#endif
+}
+
+void ACH4_2PlayerController::CHStatsAddCoins(int32 PlayerId, int32 Amount)
+{
+	if (ACH4_2PlayerState* Stats = FindPIEDebugPlayerState(PlayerId))
+	{
+		const bool bApplied = Stats->AddCoins(Amount);
+		UE_LOG(LogCH4_2, Log, TEXT("AddCoins PlayerId=%d Amount=%d Applied=%d Coins=%d"), PlayerId, Amount, bApplied, Stats->GetCoins());
+	}
+}
+
+void ACH4_2PlayerController::CHStatsSpendCoins(int32 PlayerId, int32 Amount)
+{
+	if (ACH4_2PlayerState* Stats = FindPIEDebugPlayerState(PlayerId))
+	{
+		const bool bApplied = Stats->TrySpendCoins(Amount);
+		UE_LOG(LogCH4_2, Log, TEXT("SpendCoins PlayerId=%d Amount=%d Applied=%d Coins=%d"), PlayerId, Amount, bApplied, Stats->GetCoins());
+	}
+}
+
+void ACH4_2PlayerController::CHStatsAddSpeed(int32 PlayerId, float Amount)
+{
+	if (ACH4_2PlayerState* Stats = FindPIEDebugPlayerState(PlayerId))
+	{
+		const bool bApplied = Stats->IncreaseBonusMaxSpeed(Amount);
+		UE_LOG(LogCH4_2, Log, TEXT("AddSpeed PlayerId=%d Amount=%g Applied=%d BonusMaxSpeed=%g"), PlayerId, Amount, bApplied, Stats->GetBonusMaxSpeed());
 	}
 }
 

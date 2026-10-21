@@ -2,7 +2,15 @@
 
 기준일: 2026-10-21. 아래의 현재 상태와 제안 구조를 구별한다.
 
-## 현재 상태: 단계 2a Vehicle 도입
+## 현재 상태: M02 개인 데이터와 HUD
+- 실제 신규 클래스: ACH4_2PlayerState(APlayerState), UCH4_2PlayerStatsWidget(UUserWidget). 초기 Coins/BonusMaxSpeed는 0.
+- GameMode 생성자에서 PlayerStateClass를 연결한다. Blueprint override는 사용자 확인 필요.
+- PC는 로컬에서만 개인 패널을 생성하며 BeginPlay/InitPlayerState/OnRep_PlayerState에서 본인 PS 이벤트를 연결하고 현재 값을 읽는다.
+- Coins/BonusMaxSpeed는 OwnerOnly, 서버 setter와 OnRep가 같은 알림을 사용한다. 수치용 Tick은 없다.
+- 개인 패널은 네이티브 위젯으로 생성되어 별도 WBP가 필요 없다. 기존 차량 속도·기어 HUD는 그대로 유지한다.
+- M02는 사용자 검증 완료 보고로 VERIFIED. 아래 제안의 CHPlayerState/개인 HUD 역할은 이 실제 클래스에 대응하며, 미구현 클래스만 향후 제안이다.
+
+## 단계 2a Vehicle 도입 상태
 - 설치 TP_VehicleAdv를 CH4_2로 치환해 도입. ACH4_2Pawn/PlayerController/GameMode, UCH4_2UI, SportsCar/OffroadCar 및 바퀴 클래스가 실제 존재한다.
 - ChaosVehicles/PhysicsCore/UMG/Slate 의존성과 ChaosVehiclesPlugin/RawInput 연결. 기존 Game/Editor Target과 프로젝트 ID는 유지했다.
 - Content에 템플릿 및 Vehicles/Input 공유 에셋을 복사. World Partition 외부 액터/객체도 포함한다. OffRoad/TimeTrial variants는 과제 기능이 아닌 공식 C++ 템플릿 콘텐츠다.
@@ -51,4 +59,14 @@ uproject 명시 플러그인은 Editor용 ModelingToolsEditorMode뿐이다. 설�
 - HUD는 로컬 PC 수명에 연결하며 초기 값 읽기와 RepNotify 후 갱신을 모두 지원한다. PlayerState/Pawn이 늦게 도착하거나 교체되어도 재바인딩하고 중복 구독을 해제한다.
 - 아이템 보상은 서버의 한 번만 소비되는 플래그로 보호한다. 스포너 종료 시 타이머와 델리게이트를 해제하여 맵 종료를 리스폰으로 오인하지 않는다.
 - BonusMaxSpeed의 단위·실제 차량 속도 제한 방식은 미정이다. 표시만 올려 실제 효과가 없는 구현을 완료로 보지 않는다.
+
+
+
+
+## M03 실제 구현 (사용자 검증 완료 보고)
+- ACH4_2GameMode는 서버 PostLogin/Logout으로 비관전자 참가자 목록을 관리한다.
+- ACH4_2GameState는 FCH4_2MatchSnapshot(Phase, RemainingSeconds, ConnectedPlayers, bCountdownActive)을 모든 연결에 복제한다.
+- UCH4_2PlayerStatsWidget은 개인 정보와 별도로 공용 경기 행을 표시한다. PC가 GameState 연결과 초기 스냅샷을 담당한다.
+- 기본값 Waiting/0초/비활성 → 2명 접속 Waiting/5초 → Playing/60초 → Finished/0초. 대기 중 인원 미달이면 초기 Waiting으로 복귀.
+- 기존 초기 설계의 첫 접속 시작 조건은 사용자 승인으로 2명 접속으로 대체되었다. 승자 목록은 아직 미구현.
 
