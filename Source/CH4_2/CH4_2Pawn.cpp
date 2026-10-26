@@ -53,6 +53,16 @@ ACH4_2Pawn::ACH4_2Pawn()
 
 }
 
+void ACH4_2Pawn::BeginPlay()
+{
+	Super::BeginPlay();
+	if (HasAuthority())
+	{
+		// Apply after Blueprint defaults: server pickup triggers require both sides to overlap.
+		GetMesh()->SetGenerateOverlapEvents(true);
+	}
+}
+
 void ACH4_2Pawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);

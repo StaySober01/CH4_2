@@ -44,6 +44,7 @@ class ACH4_2Pawn : public AWheeledVehiclePawn
 	TObjectPtr<UChaosWheeledVehicleMovementComponent> ChaosVehicleMovement;
 
 protected:
+	virtual void BeginPlay() override;
 
 	/** Steering Action */
 	UPROPERTY(EditAnywhere, Category="Input")

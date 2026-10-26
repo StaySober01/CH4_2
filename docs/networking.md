@@ -57,3 +57,9 @@ PostLogin/Logout → 서버 GameMode의 참가 인원 갱신 → Waiting 카운�
 
 ## M04 채팅 구현 (WBP 생성/연결 및 검증 대기)
 소유 로컬 PC에서 Enter → WBP 입력 → ServerSubmitChat → 서버의 PS 소유 관계/200자/공백/0.5초 검사 → 월드의 각 CH4_2 PC에 ClientReceiveChat → 로컬 기록과 WBP 갱신. 서버에서 정한 이름만 사용하며 Host도 동일 ClientReceiveChat 경로로 한 번 표시한다. 거부 안내는 발신자 PC의 ClientChatRejected로만 전달한다. 위젯 생성보다 수신이 빨라도 PC의 최근 50건 기록을 생성 후 표시한다. 비소유 PC에 Server RPC를 보내는 것은 Unreal 소유 연결 규칙이 거부한다.
+
+## M05 코인 구현 — 2026-10-23
+서버 Sphere 오버랩 → 차량/PC/PS 소유·빙의 및 실제 겹침 검사 → 소비 가드 → AddCoins(10) → 각 PC ClientPlayPickupEffects → 서버 Destroy.
+클라이언트 코인은 충돌을 비활성화하며 획득 Server RPC를 제공하지 않는다. 서버 코인 파괴와 OwnerOnly Coins 복제가 지속 상태를 전달한다.
+효과는 좌표와 에셋 참조만 지속 PC 채널로 보내며 코인 채널의 소멸과 분리한다. 다른 채널 사이의 표시 순서는 보장하지 않는다. 후입장 과거 효과 없음. EndPlay는 델리게이트 해제만 수행한다.
+실제 2인 파괴/효과 수신 검증은 사용자 대기. 앞선 M04 미구현/생성 대기 설명은 이후 사용자 확인으로 갱신되었다.

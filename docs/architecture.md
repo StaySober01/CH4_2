@@ -76,3 +76,10 @@ uproject 명시 플러그인은 Editor용 ModelingToolsEditorMode뿐이다. 설�
 - UCH4_2ChatWidget은 WBP_Chat의 ChatHistory/ChatScroll/MessageInput/FeedbackText에 연결한다. 텍스트/이벤트만 C++, 레이아웃은 WBP.
 - PC의 PlayerStatsWidgetClass/ChatWidgetClass는 BP 기본값에서 지정한다. 생성 스크립트가 연결하며, 미지정 시 네이티브 대체 UI 대신 오류 로그를 남긴다.
 - Scripts/create_m04_widgets.py는 작성만 했고 WBP 에셋은 아직 미생성. 상세 안내 m04-chat-wbp.md.
+
+## M05 현재 구현 — 2026-10-23
+- ACH4_2CoinPickup: 서버 Sphere 오버랩과 소비 가드, PlayerState AddCoins(10), 1Hz 복제 액터 Destroy. 기본 Cylinder와 BP 편집용 파티클/사운드 참조.
+- Pawn BeginPlay에서 서버 메시 오버랩 활성화, PC OnPossess에서 초기 겹침 처리. Tick/타이머 추가 없음.
+- PC ClientPlayPickupEffects는 파괴 액터와 독립된 일시적 효과 전달 책임만 가진다. 기존 개인 HUD 갱신은 PS 이벤트 경로를 그대로 쓴다.
+- 실제 BP/효과 연결 및 맵 배치는 사용자 작업 대기. 상세 m05-coin-pickup.md.
+- 위 M04 에셋 미생성 설명은 과거 이력이며 이후 사용자 생성/채팅/HUD 확인으로 M04 VERIFIED다.

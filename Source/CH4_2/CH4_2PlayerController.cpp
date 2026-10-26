@@ -8,6 +8,7 @@
 #include "CH4_2PlayerStatsWidget.h"
 #include "CH4_2GameState.h"
 #include "CH4_2ChatWidget.h"
+#include "CH4_2CoinPickup.h"
 #include "Components/InputComponent.h"
 #include "HAL/PlatformTime.h"
 #include "InputCoreTypes.h"
@@ -20,6 +21,25 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameModeBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "Sound/SoundBase.h"
+
+void ACH4_2PlayerController::ClientPlayPickupEffects_Implementation(FVector Location, UParticleSystem* Effect, USoundBase* Sound)
+{
+	if (!IsLocalController() || GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	if (IsValid(Effect))
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, Effect, Location);
+	}
+	if (IsValid(Sound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
+	}
+}
 
 namespace
 {
@@ -514,6 +534,18 @@ void ACH4_2PlayerController::OnPossess(APawn* InPawn)
 		VehiclePawn->OnDestroyed.AddUniqueDynamic(this, &ACH4_2PlayerController::OnPawnDestroyed);
 		UE_LOG(LogCH4_2, Log, TEXT("Vehicle possessed: Controller=%s Pawn=%s Location=%s"),
 			*GetName(), *VehiclePawn->GetName(), *VehiclePawn->GetActorLocation().ToString());
+		if (HasAuthority())
+		{
+			TArray<AActor*> OverlappingCoins;
+			VehiclePawn->GetOverlappingActors(OverlappingCoins, ACH4_2CoinPickup::StaticClass());
+			for (AActor* Actor : OverlappingCoins)
+			{
+				if (ACH4_2CoinPickup* Coin = Cast<ACH4_2CoinPickup>(Actor); IsValid(Coin))
+				{
+					Coin->TryCollect(VehiclePawn);
+				}
+			}
+		}
 	}
 }
 

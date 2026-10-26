@@ -14,6 +14,8 @@ class UCH4_2PlayerStatsWidget;
 class ACH4_2GameState;
 class AGameStateBase;
 class UCH4_2ChatWidget;
+class UParticleSystem;
+class USoundBase;
 
 /**
  *  Vehicle Player Controller class
@@ -89,6 +91,10 @@ public:
 	virtual void CleanupPlayerState() override;
 	void SubmitChatMessage(const FString& Message);
 	void CloseChat();
+
+	/** Server sends cosmetics over the persistent PC channel before destroying a pickup. */
+	UFUNCTION(Client, Reliable)
+	void ClientPlayPickupEffects(FVector Location, UParticleSystem* Effect, USoundBase* Sound);
 
 	/** Local PIE diagnostics only. These are not Server RPCs. */
 	UFUNCTION(Exec)
