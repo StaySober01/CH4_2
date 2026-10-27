@@ -1,0 +1,53 @@
+# M07 아이템 스포너
+
+## 구현 전 계획 — 2026-10-27
+- 목표: 서버에서 설정한 코인/버프 한 개 생성, 생성 참조 저장 및 OnDestroyed 구독, 파괴 2초 뒤 같은 종류 재생성.
+- 신규 Source/CH4_2/CH4_2ItemSpawner.h/.cpp. 기존 픽업의 보상·효과·속도 코드는 유지.
+- 지연 생성으로 참조/델리게이트를 BeginPlay 전에 연결하여 생성 즉시 획득되어도 파괴를 놓치지 않는다.
+- 서버 전용 스포너, 실제 아이템은 기존 액터 복제. 하나의 참조와 단일 타이머로 중복 생성 방지.
+- EndPlay에서 타이머/구독 정리 및 남은 아이템 제거. 월드 종료 또는 스트리밍 해제를 재생성으로 처리하지 않는다.
+- 위험: 잘못된 클래스, 미지정 효과, 생성 위치에 정차한 차량의 즉시 재획득, 월드 파티션 수명.
+- 완료 기준: 사용자 빌드, BP/맵 설정, 양쪽 동일 아이템, 반복 획득 후 2초 재생성, 동시 획득 중복 없음, 종료 정리.
+- 빌드/UHT/PIE/작업 후 검증 명령은 에이전트 미실행. 맵 배치는 사용자 에디터에서 수행.
+
+## 구현 결과
+- ACH4_2ItemSpawner: ItemClass에 코인 또는 버프 BP 지정, 서버 BeginPlay 즉시 첫 생성.
+- SpawnedItem은 UPROPERTY 참조. 지연 생성 → 참조 저장/OnDestroyed·OnEndPlay 연결 → FinishSpawning 순서.
+- 파괴 시 참조 해제 및 단일 2초 타이머. 실행 시 아직 아이템이 있으면 생성하지 않는다.
+- 클래스는 BeginPlay에서 검증하고 해당 플레이 동안 고정. 잘못된 클래스/복제 꺼짐은 오류 후 생성 중단. 일시적 생성 실패는 2초 후 재시도.
+- AlwaysSpawn을 사용하므로 생성 위치의 차량은 새 아이템을 즉시 획득할 수 있다. 충돌로 생성 위치를 이동하지 않는다. 정차 중 2초마다 획득은 현재 동작이다.
+- 종료 시 타이머와 구독 해제 후 남은 아이템 파괴. 기존 픽업 EndPlay에는 효과가 없으므로 종료 자체로 획득 효과가 발생하지 않는다.
+- 비파괴 EndPlay(스트리밍 해제 등)는 재생성 중단. 스포너가 다시 BeginPlay하면 정지 플래그를 초기화한다. 배치 스포너는 아래 안내대로 Is Spatially Loaded를 꺼서 기본 경기 중 스트리밍 수명 변화를 피한다.
+- 스포너 자체는 비복제/클라이언트 맵 로드 비활성화. 아이템 생성·파괴는 기존 아이템 복제로 전달된다.
+- SPAWN-001~003 IMPLEMENTED, SPAWN-004 및 M07 IN_PROGRESS(사용자 실제 맵 배치/검증 대기).
+
+## 사용자 빌드 및 에디터 설정
+1. 에디터 종료 후 Development Editor / Win64 전체 빌드:
+
+    & 'C:\Program Files\Epic Games\UE_5.6\Engine\Build\BatchFiles\Build.bat' CH4_2Editor Win64 Development '-Project=C:\UnrealProject\CH4_2\CH4_2.uproject' -WaitMutex -NoHotReloadFromIDE
+
+2. CH4_2ItemSpawner 부모로 /Game/Items/BP_ItemSpawner 생성 후 Compile/Save.
+3. VehicleBasic 맵에 BP_ItemSpawner를 배치한다. 스포너에는 게임용 메시가 없으므로 Outliner에서 선택해 위치를 조정한다.
+4. 각 배치 인스턴스 Details → Spawner → Item Class에서 BP_CoinPickup 또는 BP_SpeedPickup 지정. 효과/사운드를 이미 연결한 M05/M06 BP를 사용한다.
+5. 코인용/버프용 스포너를 각각 하나 이상 배치한다. 위치는 평지의 차량 차체 높이, Scale은 (1,1,1)로 시작한다. 지형 속이나 벽 안은 피한다.
+6. World Partition 사용 맵에서는 각 스포너의 Is Spatially Loaded를 끈다. 위치를 표시하는 별도 메시가 필요하면 BP에 NoCollision 장식으로 추가할 수 있다.
+7. 같은 위치에 이전 수동 배치 코인/버프가 있으면 에디터에서 옮겨 두어 겹친 두 아이템을 중복 생성으로 오인하지 않게 한다. 맵 저장.
+8. Item Class 미지정/잘못된 타입/Replicates 꺼짐이면 LogCH4_2에 오류가 나오며 그 스포너는 동작하지 않는다. 생성은 서버에서 하므로 Client의 SpawnedItem을 검사 기준으로 사용하지 않는다.
+
+## 사용자 검증
+1. 2 Players / Play As Listen Server / New Editor Window (PIE). 두 창에서 각 스포너 위치에 설정한 아이템 하나만 표시.
+2. Host 코인 획득: 본인 +10, 양쪽 코인 파괴·효과, 약 2초 후 같은 위치에 코인 하나 재생성.
+3. Client 버프 획득: 본인 추가속도 +10km/h, 양쪽 파괴·효과, 약 2초 후 버프 하나 재생성.
+4. 각 아이템을 3회 이상 반복 획득. 종류/위치 유지, 코인/속도는 매번 한 번씩만 증가.
+5. 두 차량 동시 접근: 생성된 아이템 하나당 한 명만 보상. 양쪽에서 복제된 아이템 수가 늘어나지 않아야 한다.
+6. 차량을 생성 위치에 정차: 2초마다 생성 즉시 획득 가능. 아이템이 눈에 보이지 않을 수 있지만 서버 spawning/collected 로그와 값 증가는 주기당 한 번이어야 한다.
+7. 아이템 획득 직후 재생성 대기 중 PIE 종료/재시작: 잔여 타이머 오류나 이전 아이템 누적 없이 초기 한 개씩.
+8. 서버 PIE 월드에서 스포너를 삭제하면 남은 아이템도 사라지고 이후 재생성/획득 효과가 없어야 한다. 검증 후 편집 월드 원본 스포너 유지 여부 확인.
+9. Item Class를 미지정한 스포너는 오류만 남기고 다른 정상 스포너는 계속 동작. 잘못된 타입 선택도 같은 결과.
+10. 기존 채팅·운전 복귀·60→70→80 속도·경기 타이머 유지. 현재 스포너는 Waiting/Playing/Finished 모두 동작하며 상태별 중단 규칙은 추가하지 않았다.
+
+## 검증 및 문제 보고
+- 빌드/UHT/PIE/작업 후 검사 에이전트 미실행. 실제 BP/맵 배치도 사용자 수행 대기.
+- 재생성 2초는 서버 게임 시간 기준. 화면 표시는 복제 지연이 더해질 수 있다.
+- 실패 시 첫 빌드 오류, 스포너 Item Class/위치/Is Spatially Loaded, Host·Client 구분, LogCH4_2의 Spawner ... spawning/오류 및 pickup collected 행을 전달한다.
+- 다음 지시 후 M08 차량 공격·5원 탈취. 공격 거리·빈도는 구현 전에 결정한다.

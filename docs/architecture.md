@@ -86,3 +86,6 @@ uproject 명시 플러그인은 Editor용 ModelingToolsEditorMode뿐이다. 설�
 
 ## M06 구현 — 2026-10-26
 CH4_2SpeedPickup은 BonusMaxSpeed +10 서버 변경 및 파괴/효과를 담당한다. Pawn의 기존 Tick이 BaseMaxSpeedKmh(기본 60)+본인 PS BonusMaxSpeed를 수평 물리 속도 제한으로 적용한다. 추가값은 km/h이며 기존 HUD 텍스트에 단위를 표시한다. 에셋 연결/사용자 검증 대기.
+
+## M07 구현 — 2026-10-27
+ACH4_2ItemSpawner가 서버에서 코인/버프 BP를 생성하고 SpawnedItem 강한 참조와 OnDestroyed 구독을 관리한다. 지연 생성으로 BeginPlay 전 구독을 보장한다. 단일 2초 타이머와 종료 정리, 잘못된 클래스 검사 포함. 기존 픽업 클래스 변경 없음. 실제 맵 배치/사용자 검증 대기.
