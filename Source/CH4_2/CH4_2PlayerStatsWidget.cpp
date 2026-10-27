@@ -88,7 +88,7 @@ void UCH4_2PlayerStatsWidget::RefreshText()
 		return;
 	}
 	CoinsText->SetText(FText::Format(LOCTEXT("Coins", "Coins: {0}"), FText::AsNumber(DisplayCoins)));
-	BonusSpeedText->SetText(FText::Format(LOCTEXT("Bonus", "Bonus max speed: {0}"), FText::AsNumber(DisplayBonusMaxSpeed)));
+	BonusSpeedText->SetText(FText::Format(LOCTEXT("BonusKmh", "Bonus max speed: {0} km/h"), FText::AsNumber(DisplayBonusMaxSpeed)));
 }
 
 #undef LOCTEXT_NAMESPACE

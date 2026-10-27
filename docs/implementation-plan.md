@@ -16,7 +16,7 @@
 | M03 | 경기 상태·타이머와 공용 HUD: GameState, Waiting/Playing/Finished, 2명 접속 후 5초 대기/60초 경기 | GM-001~003, GM-005~010 | M02 | 2명 접속 후 서버가 1초마다 감소, 단계 전환과 시간이 양쪽 UI에서 일치. 이 단계의 Finished는 종료 상태만 표시. T-MATCH 중 상태·시간 | VERIFIED |
 | M04 | 채팅: C++ Widget/WBP, Enter 제출, 소유 PC Server RPC와 각 PC 수신 경로 | CHAT-001~006 | M02 | Host↔Client 양방향 한 번씩 표시, 빈 입력·길이·빈도 검증, 입력 포커스 복귀. T-CHAT | VERIFIED |
 | M05 | 코인 획득: 코인 액터·충돌·효과/사운드, 서버 보상 및 파괴 | ITEM-001~004 | M02 | 획득자 +10원, NetUpdateFrequency=1, 중복 오버랩에도 한 번 지급, 양쪽 파괴·효과 확인. T-ITEM 코인 | VERIFIED |
-| M06 | 속도 버프: 버프 액터, +10 데이터와 실제 차량 속도 적용, 효과/사운드 | ITEM-005~008 | M05 | NetUpdateFrequency=1, 한 번 획득·파괴, 개인 HUD +10과 합의된 단위/방식의 실제 속도 효과 확인. T-ITEM 버프, T-PS | TODO |
+| M06 | 속도 버프: 버프 액터, +10 데이터와 실제 차량 속도 적용, 효과/사운드 | ITEM-005~008 | M05 | NetUpdateFrequency=1, 한 번 획득·파괴, 개인 HUD +10과 합의된 단위/방식의 실제 속도 효과 확인. T-ITEM 버프, T-PS | VERIFIED |
 | M07 | 아이템 스포너와 맵 배치: 생성 참조, OnDestroyed, 2초 재생성 | SPAWN-001~004 | M05~06 | 서버에서 동일 종류 한 개만 재생성, 코인/버프 스포너 배치, 반복 획득·맵 종료 정리 확인. T-SPAWN | TODO |
 | M08 | 차량 공격·탈취: 좌클릭 IA, Server RPC, 앞 범퍼 Trace, ApplyDamage, 선/피격 효과 | VEH-001~007 | M02, M05 | 잔액 0·4는 무변화, 5 이상은 -5/+5와 총합 보존. 범위·장애물·빈도 검사, 양쪽 효과 확인. T-ATTACK | TODO |
 | M09 | 승패·공동 우승: 서버 Coins 비교, GameState 승자 목록, 로컬 결과 UI | GM-004, GM-011~013 | M03, M07~08 | 실제 수집/탈취 경기 종료 후 단독 우승·동률·전원 0원 결과를 양쪽에서 확인. 상대 Coins 공개 없이 결과 표시. T-MATCH 결과 | TODO |
@@ -102,10 +102,10 @@
 | ITEM-002 | 필수 | 코인 액터 클래스의 NetUpdateFrequency는 1로 설정. | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
 | ITEM-003 | 필수 | 오버랩된 코인 액터는 파괴. | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
 | ITEM-004 | 필수 | 코인 아이템 액터 파괴 시 파티클 및 사운드 재생. | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
-| ITEM-005 | 필수 | 스피드 버프 액터 클래스 생성 및 오버랩 시에 대상 플레이어는 추가 최대 속도 10 상승 | TODO | 없음 / CHPickup, CHCoinPickup, CHSpeedPickup | T-ITEM / 미실행 |
-| ITEM-006 | 필수 | 스피드 버프 액터 클래스의 NetUpdateFrequency는 1로 설정. | TODO | 없음 / CHPickup, CHCoinPickup, CHSpeedPickup | T-ITEM / 미실행 |
-| ITEM-007 | 필수 | 오버랩된 버프 아이템 액터는 파괴. | TODO | 없음 / CHPickup, CHCoinPickup, CHSpeedPickup | T-ITEM / 미실행 |
-| ITEM-008 | 필수 | 버프 아이템 액터 파괴 시 파티클 및 사운드 재생. | TODO | 없음 / CHPickup, CHCoinPickup, CHSpeedPickup | T-ITEM / 미실행 |
+| ITEM-005 | 필수 | 스피드 버프 액터 클래스 생성 및 오버랩 시에 대상 플레이어는 추가 최대 속도 10 상승 | VERIFIED | Source/CH4_2/CH4_2SpeedPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.cpp | T-ITEM / docs/m06-speed-pickup.md; 2026-10-27 사용자 검증 완료 보고, 개별 로그 미제공 |
+| ITEM-006 | 필수 | 스피드 버프 액터 클래스의 NetUpdateFrequency는 1로 설정. | VERIFIED | Source/CH4_2/CH4_2SpeedPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.cpp | T-ITEM / docs/m06-speed-pickup.md; 2026-10-27 사용자 검증 완료 보고, 개별 로그 미제공 |
+| ITEM-007 | 필수 | 오버랩된 버프 아이템 액터는 파괴. | VERIFIED | Source/CH4_2/CH4_2SpeedPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.cpp | T-ITEM / docs/m06-speed-pickup.md; 2026-10-27 사용자 검증 완료 보고, 개별 로그 미제공 |
+| ITEM-008 | 필수 | 버프 아이템 액터 파괴 시 파티클 및 사운드 재생. | VERIFIED | Source/CH4_2/CH4_2SpeedPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.cpp | T-ITEM / docs/m06-speed-pickup.md; 2026-10-27 사용자 검증 완료 보고, 개별 로그 미제공 |
 | SPAWN-001 | 필수 | 스포너 액터 클래스 생성 및 액터 스폰 로직 작성. | TODO | 없음 / CHItemSpawner; Content/Maps | T-SPAWN / 미실행 |
 | SPAWN-002 | 필수 | 스포너는 생성한 아이템 객체를 속성으로 저장. OnDestroyed 델리게이트 구독. | TODO | 없음 / CHItemSpawner; Content/Maps | T-SPAWN / 미실행 |
 | SPAWN-003 | 필수 | 스포너가 생성한 아이템 객체가 파괴되면 2초 뒤 같은 종류의 아이템을 리스폰. | TODO | 없음 / CHItemSpawner; Content/Maps | T-SPAWN / 미실행 |
@@ -149,6 +149,8 @@
 
 
 M04 UI 전환 이력: WBP 전환 시 표시 항목을 재검증 대기로 변경했으며, 이후 사용자 기존 코인/타이머 표시 확인 보고로 PS-009/GM-007/GM-009와 M02/M03을 VERIFIED로 복원했다. 서버 데이터·타이머 항목은 유지한다. 현재 UI 생성/표시의 실제 파일 및 최신 검증 기준은 docs/m04-chat-wbp.md를 따른다.
+
+
 
 
 

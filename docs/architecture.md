@@ -83,3 +83,6 @@ uproject 명시 플러그인은 Editor용 ModelingToolsEditorMode뿐이다. 설�
 - PC ClientPlayPickupEffects는 파괴 액터와 독립된 일시적 효과 전달 책임만 가진다. 기존 개인 HUD 갱신은 PS 이벤트 경로를 그대로 쓴다.
 - 실제 BP/효과 연결 및 맵 배치는 사용자 작업 대기. 상세 m05-coin-pickup.md.
 - 위 M04 에셋 미생성 설명은 과거 이력이며 이후 사용자 생성/채팅/HUD 확인으로 M04 VERIFIED다.
+
+## M06 구현 — 2026-10-26
+CH4_2SpeedPickup은 BonusMaxSpeed +10 서버 변경 및 파괴/효과를 담당한다. Pawn의 기존 Tick이 BaseMaxSpeedKmh(기본 60)+본인 PS BonusMaxSpeed를 수평 물리 속도 제한으로 적용한다. 추가값은 km/h이며 기존 HUD 텍스트에 단위를 표시한다. 에셋 연결/사용자 검증 대기.

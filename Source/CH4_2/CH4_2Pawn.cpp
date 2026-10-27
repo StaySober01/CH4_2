@@ -11,6 +11,7 @@
 #include "InputActionValue.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "CH4_2.h"
+#include "CH4_2PlayerState.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -104,6 +105,7 @@ void ACH4_2Pawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 void ACH4_2Pawn::Tick(float Delta)
 {
 	Super::Tick(Delta);
+	ApplySpeedLimit();
 
 	// add some angular damping if the vehicle is in midair
 	bool bMovingOnGround = ChaosVehicleMovement->IsMovingOnGround();
@@ -114,6 +116,33 @@ void ACH4_2Pawn::Tick(float Delta)
 	CameraYaw = FMath::FInterpTo(CameraYaw, 0.0f, Delta, 1.0f);
 
 	BackSpringArm->SetRelativeRotation(FRotator(0.0f, CameraYaw, 0.0f));
+}
+
+void ACH4_2Pawn::ApplySpeedLimit()
+{
+	// Simulated proxies follow replicated physics; they cannot read the owner's bonus.
+	if ((!HasAuthority() && !IsLocallyControlled()) || !GetMesh()->IsSimulatingPhysics())
+	{
+		return;
+	}
+	const ACH4_2PlayerState* Stats = GetPlayerState<ACH4_2PlayerState>();
+	const float Bonus = IsValid(Stats) ? Stats->GetBonusMaxSpeed() : 0.0f;
+	if (!FMath::IsFinite(BaseMaxSpeedKmh) || !FMath::IsFinite(Bonus))
+	{
+		return;
+	}
+	// Use double for the conversion so even large finite float stats cannot overflow.
+	const double LimitCmPerSecond = FMath::Max(0.0, static_cast<double>(BaseMaxSpeedKmh) + Bonus) / 0.036;
+	FVector Velocity = GetMesh()->GetPhysicsLinearVelocity();
+	const double HorizontalSpeed = Velocity.Size2D();
+	if (HorizontalSpeed > LimitCmPerSecond && HorizontalSpeed > UE_SMALL_NUMBER)
+	{
+		const double Scale = LimitCmPerSecond / HorizontalSpeed;
+		Velocity.X *= Scale;
+		Velocity.Y *= Scale;
+		// Preserve vertical velocity for jumps and gravity.
+		GetMesh()->SetPhysicsLinearVelocity(Velocity);
+	}
 }
 
 void ACH4_2Pawn::Steering(const FInputActionValue& Value)

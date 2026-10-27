@@ -46,6 +46,11 @@ class ACH4_2Pawn : public AWheeledVehiclePawn
 protected:
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Vehicle|Speed", meta=(ClampMin="0.0", Units="km/h"))
+	float BaseMaxSpeedKmh = 60.0f;
+
+	void ApplySpeedLimit();
+
 	/** Steering Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SteeringAction;

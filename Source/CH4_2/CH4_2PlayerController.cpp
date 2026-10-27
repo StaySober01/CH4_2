@@ -9,6 +9,7 @@
 #include "CH4_2GameState.h"
 #include "CH4_2ChatWidget.h"
 #include "CH4_2CoinPickup.h"
+#include "CH4_2SpeedPickup.h"
 #include "Components/InputComponent.h"
 #include "HAL/PlatformTime.h"
 #include "InputCoreTypes.h"
@@ -537,6 +538,15 @@ void ACH4_2PlayerController::OnPossess(APawn* InPawn)
 		if (HasAuthority())
 		{
 			TArray<AActor*> OverlappingCoins;
+			TArray<AActor*> OverlappingSpeedPickups;
+			VehiclePawn->GetOverlappingActors(OverlappingSpeedPickups, ACH4_2SpeedPickup::StaticClass());
+			for (AActor* Actor : OverlappingSpeedPickups)
+			{
+				if (ACH4_2SpeedPickup* Pickup = Cast<ACH4_2SpeedPickup>(Actor); IsValid(Pickup))
+				{
+					Pickup->TryCollect(VehiclePawn);
+				}
+			}
 			VehiclePawn->GetOverlappingActors(OverlappingCoins, ACH4_2CoinPickup::StaticClass());
 			for (AActor* Actor : OverlappingCoins)
 			{
