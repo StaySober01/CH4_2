@@ -32,6 +32,26 @@ bool ACH4_2PlayerState::TrySpendCoins(int32 Amount)
 	return true;
 }
 
+bool ACH4_2PlayerState::TryTransferCoinsTo(ACH4_2PlayerState* Recipient, int32 Amount)
+{
+	if (!HasAuthority() || IsActorBeingDestroyed() || !IsValid(Recipient) || Recipient == this
+		|| !Recipient->HasAuthority() || Recipient->IsActorBeingDestroyed() || GetWorld() != Recipient->GetWorld()
+		|| Amount <= 0 || Coins < Amount || Amount > MAX_int32 - Recipient->Coins)
+	{
+		return false;
+	}
+	Coins -= Amount;
+	Recipient->Coins += Amount;
+	ForceNetUpdate();
+	Recipient->ForceNetUpdate();
+	NotifyStatsChanged();
+	if (IsValid(Recipient) && !Recipient->IsActorBeingDestroyed())
+	{
+		Recipient->NotifyStatsChanged();
+	}
+	return true;
+}
+
 bool ACH4_2PlayerState::IncreaseBonusMaxSpeed(float Amount)
 {
 	if (!HasAuthority() || !FMath::IsFinite(Amount) || Amount <= 0.0f)

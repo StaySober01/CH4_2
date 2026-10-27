@@ -10,6 +10,10 @@ class UCameraComponent;
 class USpringArmComponent;
 class UInputAction;
 class UChaosWheeledVehicleMovementComponent;
+class UArrowComponent;
+class UParticleSystem;
+class ACH4_2PlayerController;
+class ACH4_2PlayerState;
 struct FInputActionValue;
 
 /**
@@ -50,6 +54,16 @@ protected:
 	float BaseMaxSpeedKmh = 60.0f;
 
 	void ApplySpeedLimit();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+	TObjectPtr<UInputAction> AttackAction;
+
+	/** Move this inherited component to the front bumper center in the vehicle BP. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vehicle|Attack")
+	TObjectPtr<UArrowComponent> AttackOrigin;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Vehicle|Attack")
+	TObjectPtr<UParticleSystem> AttackHitEffect;
 
 	/** Steering Action */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -94,6 +108,8 @@ public:
 	// Begin Actor interface
 
 	virtual void Tick(float Delta) override;
+	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
+		AController* EventInstigator, AActor* DamageCauser) override;
 
 	// End Actor interface
 
@@ -184,4 +200,18 @@ public:
 	FORCEINLINE UCameraComponent* GetBackCamera() const { return BackCamera; }
 	/** Returns the cast Chaos Vehicle Movement subobject */
 	FORCEINLINE const TObjectPtr<UChaosWheeledVehicleMovementComponent>& GetChaosVehicleMovement() const { return ChaosVehicleMovement; }
+
+private:
+	void Attack();
+	bool GetAttackPlayer(ACH4_2PlayerController*& OutController, ACH4_2PlayerState*& OutStats) const;
+
+	UFUNCTION(Server, Reliable)
+	void ServerAttack();
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ACH4_2Pawn> PendingAttackTarget;
+
+	double NextLocalAttackTime = 0.0;
+	bool bResolvingAttack = false;
+	static constexpr float AttackRangeCm = 500.0f;
 };

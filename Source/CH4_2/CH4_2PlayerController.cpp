@@ -25,6 +25,36 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
+#include "DrawDebugHelpers.h"
+
+bool ACH4_2PlayerController::TryStartVehicleAttack()
+{
+	if (!HasAuthority() || IsActorBeingDestroyed())
+	{
+		return false;
+	}
+	const double Now = FPlatformTime::Seconds();
+	if (Now < NextVehicleAttackTime)
+	{
+		return false;
+	}
+	NextVehicleAttackTime = Now + 2.0;
+	return true;
+}
+
+void ACH4_2PlayerController::ClientShowVehicleAttack_Implementation(FVector Start, FVector End,
+	bool bHitVehicle, UParticleSystem* HitEffect)
+{
+	if (!IsLocalController() || GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	DrawDebugLine(GetWorld(), Start, End, bHitVehicle ? FColor::Green : FColor::Red, false, 1.0f, 0, 2.0f);
+	if (bHitVehicle && IsValid(HitEffect))
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, HitEffect, End);
+	}
+}
 
 void ACH4_2PlayerController::ClientPlayPickupEffects_Implementation(FVector Location, UParticleSystem* Effect, USoundBase* Sound)
 {

@@ -89,3 +89,6 @@ CH4_2SpeedPickup은 BonusMaxSpeed +10 서버 변경 및 파괴/효과를 담당�
 
 ## M07 구현 — 2026-10-27
 ACH4_2ItemSpawner가 서버에서 코인/버프 BP를 생성하고 SpawnedItem 강한 참조와 OnDestroyed 구독을 관리한다. 지연 생성으로 BeginPlay 전 구독을 보장한다. 단일 2초 타이머와 종료 정리, 잘못된 클래스 검사 포함. 기존 픽업 클래스 변경 없음. 실제 맵 배치/사용자 검증 대기.
+
+## M08 구현 — 2026-10-27
+Pawn의 AttackAction/AttackOrigin/AttackHitEffect 및 ServerAttack/TakeDamage 추가. 서버 Trace로 확인한 대상만 일회성 문맥으로 ApplyDamage를 처리한다. PlayerState TryTransferCoinsTo가 양쪽 Coins를 먼저 갱신한 뒤 기존 UI 이벤트를 보낸다. PC는 2초 쿨타임과 공격 선/파티클 전달을 담당한다. IA/IMC/BP 연결은 사용자 작업 대기, 새 모듈·Tick·타이머 없음.

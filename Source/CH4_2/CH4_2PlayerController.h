@@ -91,6 +91,12 @@ public:
 	virtual void CleanupPlayerState() override;
 	void SubmitChatMessage(const FString& Message);
 	void CloseChat();
+	bool IsChatOpen() const { return bChatOpen; }
+	/** Server-only; the cooldown survives a vehicle respawn on this controller. */
+	bool TryStartVehicleAttack();
+
+	UFUNCTION(Client, Reliable)
+	void ClientShowVehicleAttack(FVector Start, FVector End, bool bHitVehicle, UParticleSystem* HitEffect);
 
 	/** Server sends cosmetics over the persistent PC channel before destroying a pickup. */
 	UFUNCTION(Client, Reliable)
@@ -137,6 +143,7 @@ private:
 
 	TArray<FText> ChatMessages;
 	bool bChatOpen = false;
+	double NextVehicleAttackTime = 0.0;
 	bool bCursorVisibleBeforeChat = false;
 	double NextChatAttemptTime = 0.0;
 	bool bRateLimitNoticeSent = false;

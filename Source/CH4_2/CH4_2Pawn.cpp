@@ -12,6 +12,15 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "CH4_2.h"
 #include "CH4_2PlayerState.h"
+#include "CH4_2PlayerController.h"
+#include "Components/ArrowComponent.h"
+#include "Engine/World.h"
+#include "Engine/DamageEvents.h"
+#include "GameFramework/DamageType.h"
+#include "HAL/PlatformTime.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "Templates/UnrealTemplate.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -51,6 +60,10 @@ ACH4_2Pawn::ACH4_2Pawn()
 
 	// get the Chaos Wheeled movement component
 	ChaosVehicleMovement = CastChecked<UChaosWheeledVehicleMovementComponent>(GetVehicleMovement());
+	AttackOrigin = CreateDefaultSubobject<UArrowComponent>(TEXT("AttackOrigin"));
+	AttackOrigin->SetupAttachment(GetMesh());
+	AttackOrigin->SetRelativeLocation(FVector(200.0f, 0.0f, 50.0f));
+	AttackOrigin->SetHiddenInGame(true);
 
 }
 
@@ -61,6 +74,10 @@ void ACH4_2Pawn::BeginPlay()
 	{
 		// Apply after Blueprint defaults: server pickup triggers require both sides to overlap.
 		GetMesh()->SetGenerateOverlapEvents(true);
+		if (!AttackHitEffect)
+		{
+			UE_LOG(LogCH4_2, Warning, TEXT("Vehicle %s: assign AttackHitEffect in the vehicle Blueprint."), *GetName());
+		}
 	}
 }
 
@@ -70,6 +87,14 @@ void ACH4_2Pawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
+		if (AttackAction)
+		{
+			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ACH4_2Pawn::Attack);
+		}
+		else
+		{
+			UE_LOG(LogCH4_2, Warning, TEXT("Vehicle %s: assign IA_Fire to AttackAction."), *GetName());
+		}
 		// steering 
 		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Triggered, this, &ACH4_2Pawn::Steering);
 		EnhancedInputComponent->BindAction(SteeringAction, ETriggerEvent::Completed, this, &ACH4_2Pawn::Steering);
@@ -143,6 +168,117 @@ void ACH4_2Pawn::ApplySpeedLimit()
 		// Preserve vertical velocity for jumps and gravity.
 		GetMesh()->SetPhysicsLinearVelocity(Velocity);
 	}
+}
+
+bool ACH4_2Pawn::GetAttackPlayer(ACH4_2PlayerController*& OutController, ACH4_2PlayerState*& OutStats) const
+{
+	OutController = Cast<ACH4_2PlayerController>(GetController());
+	OutStats = GetPlayerState<ACH4_2PlayerState>();
+	return !IsActorBeingDestroyed() && IsValid(OutController) && !OutController->IsActorBeingDestroyed()
+		&& OutController->GetPawn() == this && GetOwner() == OutController
+		&& IsValid(OutStats) && !OutStats->IsActorBeingDestroyed()
+		&& OutStats->GetOwner() == OutController
+		&& OutController->GetPlayerState<ACH4_2PlayerState>() == OutStats;
+}
+
+void ACH4_2Pawn::Attack()
+{
+	ACH4_2PlayerController* PC = Cast<ACH4_2PlayerController>(GetController());
+	if (!IsLocallyControlled() || !IsValid(PC) || PC->IsChatOpen() || IsActorBeingDestroyed())
+	{
+		return;
+	}
+	const double Now = FPlatformTime::Seconds();
+	if (Now < NextLocalAttackTime)
+	{
+		return;
+	}
+	NextLocalAttackTime = Now + 2.0;
+	ServerAttack();
+}
+
+void ACH4_2Pawn::ServerAttack_Implementation()
+{
+	ACH4_2PlayerController* PC = nullptr;
+	ACH4_2PlayerState* Stats = nullptr;
+	if (!HasAuthority() || bResolvingAttack || !GetWorld() || GetWorld()->bIsTearingDown || !IsValid(AttackOrigin)
+		|| !GetAttackPlayer(PC, Stats) || !PC->TryStartVehicleAttack())
+	{
+		return;
+	}
+	TGuardValue<bool> ResolvingGuard(bResolvingAttack, true);
+	const FVector Start = AttackOrigin->GetComponentLocation();
+	const FVector End = Start + GetActorForwardVector() * AttackRangeCm;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(VehicleAttack), false, this);
+	FHitResult Hit;
+	// Reject a muzzle already beyond a thin wall instead of tracing through it.
+	const bool bOriginBlocked = GetWorld()->LineTraceSingleByChannel(Hit, GetActorLocation(), Start, ECC_Visibility, Params);
+	FVector DrawStart = bOriginBlocked ? GetActorLocation() : Start;
+	FVector DrawEnd = End;
+	ACH4_2Pawn* Target = nullptr;
+	if (bOriginBlocked)
+	{
+		DrawEnd = Hit.ImpactPoint;
+	}
+	else if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		DrawEnd = Hit.ImpactPoint;
+		Target = Cast<ACH4_2Pawn>(Hit.GetActor());
+	}
+	ACH4_2PlayerController* TargetPC = nullptr;
+	ACH4_2PlayerState* TargetStats = nullptr;
+	const bool bHitVehicle = IsValid(Target) && Target != this && Target->CanBeDamaged()
+		&& Target->GetAttackPlayer(TargetPC, TargetStats) && TargetPC != PC;
+	const FString TargetName = GetNameSafe(Target);
+	float Transferred = 0.0f;
+	if (bHitVehicle)
+	{
+		PendingAttackTarget = Target;
+		Transferred = UGameplayStatics::ApplyDamage(Target, 5.0f, PC, this, UDamageType::StaticClass());
+		PendingAttackTarget.Reset();
+	}
+	// Damage/UI callbacks may end play or travel to another world.
+	if (IsActorBeingDestroyed() || !GetWorld() || GetWorld()->bIsTearingDown)
+	{
+		return;
+	}
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (ACH4_2PlayerController* Recipient = Cast<ACH4_2PlayerController>(It->Get());
+			IsValid(Recipient) && !Recipient->IsActorBeingDestroyed())
+		{
+			Recipient->ClientShowVehicleAttack(DrawStart, DrawEnd, bHitVehicle, AttackHitEffect);
+		}
+	}
+	UE_LOG(LogCH4_2, Log, TEXT("Vehicle attack: attacker=%s target=%s transferred=%.0f originBlocked=%d"),
+		*GetName(), *TargetName, Transferred, bOriginBlocked);
+}
+
+float ACH4_2Pawn::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
+	AController* EventInstigator, AActor* DamageCauser)
+{
+	ACH4_2Pawn* Attacker = Cast<ACH4_2Pawn>(DamageCauser);
+	ACH4_2PlayerController* AttackerPC = nullptr;
+	ACH4_2PlayerState* AttackerStats = nullptr;
+	ACH4_2PlayerController* VictimPC = nullptr;
+	ACH4_2PlayerState* VictimStats = nullptr;
+	if (!HasAuthority() || !CanBeDamaged() || !IsValid(Attacker) || Attacker == this
+		|| !Attacker->HasAuthority() || Attacker->GetWorld() != GetWorld()
+		|| !Attacker->bResolvingAttack || Attacker->PendingAttackTarget.Get() != this
+		|| DamageAmount != 5.0f || !Attacker->GetAttackPlayer(AttackerPC, AttackerStats)
+		|| EventInstigator != AttackerPC || !GetAttackPlayer(VictimPC, VictimStats) || VictimPC == AttackerPC
+		|| !ShouldTakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser))
+	{
+		return 0.0f;
+	}
+	// Consume this server trace once, before delegates or Blueprint damage events can re-enter.
+	Attacker->PendingAttackTarget.Reset();
+	if (!VictimStats->TryTransferCoinsTo(AttackerStats, 5))
+	{
+		return 0.0f;
+	}
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	return 5.0f;
 }
 
 void ACH4_2Pawn::Steering(const FInputActionValue& Value)

@@ -28,6 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Player Stats")
 	bool TrySpendCoins(int32 Amount);
 
+	/** Server-only transaction: update both balances before broadcasting either UI event. */
+	bool TryTransferCoinsTo(ACH4_2PlayerState* Recipient, int32 Amount);
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Player Stats")
 	bool IncreaseBonusMaxSpeed(float Amount);
 

@@ -154,3 +154,28 @@ UHT 포함 종료 코드와 오류 로그를 기록한다. 에디터/Live Coding
 - 사용자 전체 빌드/BP/맵 설정/2인 PIE 절차: docs/m07-item-spawner.md.
 - 반복 획득, 동시 접근, 생성 위치 정차, 재생성 대기 중 종료, 잘못된 클래스, 기존 기능 회귀 확인.
 - 에이전트 빌드/UHT/PIE/작업 후 검증 명령 미실행.
+
+## M07 사용자 수용 결과 — 2026-10-27
+- M07 BP/맵 배치 및 2인 PIE 안내 이후 사용자가 “검증 완료”를 보고했다.
+- M07/SPAWN-001~004 VERIFIED. 코인/버프 설정·배치, 서버 생성, 파괴 후 2초 재생성 및 중복 생성/종료 정리의 수용 완료 보고로 기록한다.
+- 증거는 사용자 보고이며 개별 로그·스크린샷은 제공받지 않았다. 에이전트 재빌드/재검증 미실행.
+- 후속 공격/승패 기능이나 다른 단계의 잔여 예외까지 검증된 것으로 확대하지 않는다.
+
+## M08 구현 — 2026-10-27
+- 사용자 확정 전방 500cm/2초 쿨타임. Pawn ServerAttack → 서버 Trace → ApplyDamage/TakeDamage → PS 간 5원 이동.
+- VEH-002~006 IMPLEMENTED. VEH-001/007 및 M08 IN_PROGRESS(IA_Fire/IMC/차량 BP/효과 연결 대기).
+- 빌드 명령, 에디터 설정과 0/4/5/10원·오버플로·양방향·거리·장애물·쿨타임·채팅 포커스 체크리스트: docs/m08-vehicle-attack.md.
+- 에이전트 빌드/UHT/PIE/에셋 생성/작업 후 검사 미실행. 사용자 결과 전 VERIFIED 처리하지 않는다.
+
+## M08 검증 중 에디터 시작 중단 — 2026-10-27
+- 사용자 __debugbreak 반복 보고. 기존 Saved/Logs/CH4_2.log 및 CH4_2-backup-2026.10.27-08.05.24.log를 읽어 진단했다. 재현 실행은 하지 않았다.
+- 기록된 오류: MTAccessDetector.h:605/615 Ensure, LiveCoding 스레드와 UdpMessaging/Messaging 초기화 스레드의 write access 경합. 해당 호출 스택에는 CH4_2 게임 함수가 없다.
+- Config/DefaultEditorPerProjectUserSettings.ini에 LiveCoding bEnabled=False, Startup=Manual 추가. 엔진 자체 경합 수정이 아닌 Live Coding 시작 경로 우회다.
+- 사용자: 에디터/디버깅 세션 종료 후 재시작. 개인 설정이 기본값을 덮어쓰면 Editor Preferences의 Enable Live Coding을 끄고 다시 시작한다.
+- 이번 설정만 반영할 때 C++ 재빌드는 불필요. 게임 코드 변경 시 기존 전체 빌드 방침 유지.
+- 우회 결과는 사용자 확인 대기이며 M08 VERIFIED로 변경하지 않는다. 반복되면 최신 Ensure 문구와 호출 스택을 다시 받는다.
+
+## 에디터 시작 중단 우회 사용자 확인 — 2026-10-27
+- Live Coding 비활성화 및 재시작 안내 후 사용자가 “검증 완료”를 보고했다.
+- 직전 실행 중단 문제의 우회 성공으로 기록한다. M08 공격/탈취 전체 검증 완료 여부는 아직 확인되지 않아 요구사항 상태를 유지한다.
+- 증거는 사용자 보고이며 추가 로그는 제공받지 않았다. 에이전트 재실행/빌드/검증 미수행.
