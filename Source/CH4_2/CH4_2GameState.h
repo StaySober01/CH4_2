@@ -13,6 +13,26 @@ enum class ECH4_2MatchPhase : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FCH4_2Winner
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PlayerId = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString PlayerName;
+};
+
+UENUM(BlueprintType)
+enum class ECH4_2MatchEndReason : uint8
+{
+	None,
+	TimeExpired,
+	PlayerLeft
+};
+
+USTRUCT(BlueprintType)
 struct FCH4_2MatchSnapshot
 {
 	GENERATED_BODY()
@@ -28,6 +48,19 @@ struct FCH4_2MatchSnapshot
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bCountdownActive = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bResultFinalized = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	ECH4_2MatchEndReason EndReason = ECH4_2MatchEndReason::None;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<int32> ResultParticipantIds;
+
+	/** IDs and names survive player departure; individual coin balances stay private. */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FCH4_2Winner> Winners;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCH4_2MatchChanged);

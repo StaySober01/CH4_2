@@ -92,3 +92,6 @@ ACH4_2ItemSpawner가 서버에서 코인/버프 BP를 생성하고 SpawnedItem �
 
 ## M08 구현 — 2026-10-27
 Pawn의 AttackAction/AttackOrigin/AttackHitEffect 및 ServerAttack/TakeDamage 추가. 서버 Trace로 확인한 대상만 일회성 문맥으로 ApplyDamage를 처리한다. PlayerState TryTransferCoinsTo가 양쪽 Coins를 먼저 갱신한 뒤 기존 UI 이벤트를 보낸다. PC는 2초 쿨타임과 공격 선/파티클 전달을 담당한다. IA/IMC/BP 연결은 사용자 작업 대기, 새 모듈·Tick·타이머 없음.
+
+## M09 구현 — 2026-10-27
+GameMode FinalizeMatch가 시간 종료 또는 Playing 중 참가자 Logout에서 실행된다. GameState MatchSnapshot에 EndReason/결과 확정 여부/참가 ID/우승자 ID·이름을 보관하며 1회 확정 후 재계산하지 않는다. PC는 본인 PlayerId와 MatchSnapshot을 기존 WBP_PlayerStats로 전달하며 MatchText에 로컬 승패와 목록을 표시한다. PlayerState OnRep_PlayerId도 기존 UI 이벤트를 호출한다. 이전 “경기 중 이탈 시 시간 유지”는 즉시 남은 참가자 승리 정책으로 대체된다.

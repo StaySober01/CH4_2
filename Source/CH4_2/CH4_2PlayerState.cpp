@@ -74,6 +74,12 @@ void ACH4_2PlayerState::OnRep_Coins()
 	NotifyStatsChanged();
 }
 
+void ACH4_2PlayerState::OnRep_PlayerId()
+{
+	Super::OnRep_PlayerId();
+	NotifyStatsChanged(); // Re-evaluate local results if identity arrives after GameState.
+}
+
 void ACH4_2PlayerState::OnRep_BonusMaxSpeed()
 {
 	NotifyStatsChanged();

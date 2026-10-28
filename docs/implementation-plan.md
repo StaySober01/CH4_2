@@ -18,8 +18,8 @@
 | M05 | 코인 획득: 코인 액터·충돌·효과/사운드, 서버 보상 및 파괴 | ITEM-001~004 | M02 | 획득자 +10원, NetUpdateFrequency=1, 중복 오버랩에도 한 번 지급, 양쪽 파괴·효과 확인. T-ITEM 코인 | VERIFIED |
 | M06 | 속도 버프: 버프 액터, +10 데이터와 실제 차량 속도 적용, 효과/사운드 | ITEM-005~008 | M05 | NetUpdateFrequency=1, 한 번 획득·파괴, 개인 HUD +10과 합의된 단위/방식의 실제 속도 효과 확인. T-ITEM 버프, T-PS | VERIFIED |
 | M07 | 아이템 스포너와 맵 배치: 생성 참조, OnDestroyed, 2초 재생성 | SPAWN-001~004 | M05~06 | 서버에서 동일 종류 한 개만 재생성, 코인/버프 스포너 배치, 반복 획득·맵 종료 정리 확인. T-SPAWN | VERIFIED |
-| M08 | 차량 공격·탈취: 좌클릭 IA, Server RPC, 앞 범퍼 Trace, ApplyDamage, 선/피격 효과 | VEH-001~007 | M02, M05 | 잔액 0·4는 무변화, 5 이상은 -5/+5와 총합 보존. 범위·장애물·빈도 검사, 양쪽 효과 확인. T-ATTACK | IN_PROGRESS |
-| M09 | 승패·공동 우승: 서버 Coins 비교, GameState 승자 목록, 로컬 결과 UI | GM-004, GM-011~013 | M03, M07~08 | 실제 수집/탈취 경기 종료 후 단독 우승·동률·전원 0원 결과를 양쪽에서 확인. 상대 Coins 공개 없이 결과 표시. T-MATCH 결과 | TODO |
+| M08 | 차량 공격·탈취: 좌클릭 IA, Server RPC, 앞 범퍼 Trace, ApplyDamage, 선/피격 효과 | VEH-001~007 | M02, M05 | 잔액 0·4는 무변화, 5 이상은 -5/+5와 총합 보존. 범위·장애물·빈도 검사, 양쪽 효과 확인. T-ATTACK | VERIFIED |
+| M09 | 승패·공동 우승: 서버 Coins 비교, GameState 승자 목록, 로컬 결과 UI | GM-004, GM-011~013 | M03, M07~08 | 실제 수집/탈취 경기 종료 후 단독 우승·동률·전원 0원 결과를 양쪽에서 확인. 상대 Coins 공개 없이 결과 표시. T-MATCH 결과 | VERIFIED |
 | M10 | 필수 기능 통합 검증·결함 수정 | 필수 47개 전체, BASE-004 | M01~09 | 두 플레이어가 접속→대기→수집/공격/채팅→종료까지 수행. 필수별 구현 파일·검증 증거 확보, 미해결 필수 결함 없음 | TODO |
 | M11 | 도전: 바퀴 부위 공격과 패널티 회복 | WHEEL-001~004 | M10 | ApplyPointDamage, 서버 Bone 판별, 음수 패널티가 0까지만 회복. 기존 버프와의 합의된 상호작용 확인. T-WHEEL | TODO |
 | M12 | 도전: 지뢰 설치·가속 장애 | MINE-001~007 | M10 (권장 순서 M11 다음) | F키→서버 뒤쪽 Spawn, Owner=설치 Pawn, 피해 차량 throttle 즉시 0·2초 후 회복, 양쪽 폭발/소리/파괴. T-MINE | TODO |
@@ -43,7 +43,7 @@
 |---|---|---|
 | M01 종료 전 | Scalable/Starter Content 차이의 적용 또는 편차 유지, Dedicated 실습 범위 | BASE-001/005, decisions.md |
 | M02~M06 | M02는 float 값 저장/표시만 구현하고 단위는 표시하지 않음. M06 전에 단위·실제 적용 방식을 결정 | Q-003 |
-| M03 | 5초 Waiting/60초 Playing 확정. 대기 중 2명 미만이면 취소·재충족 시 5초 재시작. 경기 중 이탈은 시간 유지, 후입장 스냅샷 수신, 자동 재시작/인원 차단 없음 | Q-002, Q-005 |
+| M03 | 5초 Waiting/60초 Playing 확정. 대기 중 2명 미만이면 취소·재충족 시 5초 재시작. M09부터 경기 중 이탈은 남은 참가자 즉시 승리, 후입장 스냅샷 수신, 자동 재시작/인원 차단 없음 | Q-002, Q-005 |
 | M04 | 사용자 확정: 최대 200 UTF-16 코드 단위, 최소 0.5초 전송 간격 | Q-002 해결(채팅) |
 | M08 | 사용자 확정: 전방 500cm, 쿨타임 2초, 좌클릭 1회당 한 번 | Q-002 해결(공격) |
 | M11 | 바퀴 Bone 목록, 패널티 크기·회복 주기·기존 양수 버프와 결합 | Q-004 |
@@ -91,13 +91,13 @@
 | PS-007 | 필수 | 추가 최대 속도 속성의 값은 서버에서만 변경되도록 검사 | VERIFIED | Source/CH4_2/CH4_2PlayerState.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2GameMode.cpp | T-PS / 2026-10-21 사용자 검증 완료 보고, docs/m02-player-state.md |
 | PS-008 | 필수 | 해당 속성을 DOREPLIFETIME_CONDITION(COND_OwnerOnly)로 복제되게 작성. | VERIFIED | Source/CH4_2/CH4_2PlayerState.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2GameMode.cpp | T-PS / 2026-10-21 사용자 검증 완료 보고, docs/m02-player-state.md |
 | PS-009 | 필수 | 습득한 원화와 추가 최대 속도를 표시 해주는 UI 제작 및 적절히 연결 | VERIFIED | Source/CH4_2/CH4_2PlayerState.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2GameMode.cpp | 2026-10-21 사용자 채팅·운전 복귀·기존 코인/타이머 표시 확인; 세부 범위 docs/testing.md |
-| VEH-001 | 필수 | 공격을 위한 좌클릭 InputAction 애셋 생성 및 차량 폰 연결 | IN_PROGRESS | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-002 | 필수 | 좌클릭 시 차량 폰 클래스의 ServerRPC 함수 호출 | IMPLEMENTED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-003 | 필수 | 위 ServerRPC에서 차량 폰 앞 범퍼 중앙에서 라인트레이싱으로 충돌 감지 | IMPLEMENTED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-004 | 필수 | 위 라인트레이싱으로 상대 차량 감지 및 상대 차량 ApplyDamage() 함수 호출 | IMPLEMENTED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-005 | 필수 | 피해 차량 폰에게 원화(`Coins`)가 있다면 가해 차량은 5원 획득, 피해 차량은 5원 회수 | IMPLEMENTED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-006 | 필수 | 피해 차량이 5원 미만 갖고 있으면 아무런 동작도 안함. | IMPLEMENTED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
-| VEH-007 | 필수 | DrawDebugLine()을 이용하여 라인트레이싱 표시. 닿은 차량에는 파티클 재생. | IN_PROGRESS | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결 대기 | T-ATTACK / docs/m08-vehicle-attack.md; 사용자 검증 대기 |
+| VEH-001 | 필수 | 공격을 위한 좌클릭 InputAction 애셋 생성 및 차량 폰 연결 | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-002 | 필수 | 좌클릭 시 차량 폰 클래스의 ServerRPC 함수 호출 | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-003 | 필수 | 위 ServerRPC에서 차량 폰 앞 범퍼 중앙에서 라인트레이싱으로 충돌 감지 | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-004 | 필수 | 위 라인트레이싱으로 상대 차량 감지 및 상대 차량 ApplyDamage() 함수 호출 | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-005 | 필수 | 피해 차량 폰에게 원화(`Coins`)가 있다면 가해 차량은 5원 획득, 피해 차량은 5원 회수 | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-006 | 필수 | 피해 차량이 5원 미만 갖고 있으면 아무런 동작도 안함. | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
+| VEH-007 | 필수 | DrawDebugLine()을 이용하여 라인트레이싱 표시. 닿은 차량에는 파티클 재생. | VERIFIED | Source/CH4_2/CH4_2Pawn.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.h/.cpp; IA_Fire/IMC/BP는 사용자 연결·검증 완료 보고 | T-ATTACK / docs/m08-vehicle-attack.md; 2026-10-27 사용자 공격 기능 검증 완료 보고, 개별 로그 미제공 |
 | ITEM-001 | 필수 | 코인 액터 클래스 생성 및 오버랩 시에 대상 플레이어는 원화(`Coins`) 10원 획득 | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
 | ITEM-002 | 필수 | 코인 액터 클래스의 NetUpdateFrequency는 1로 설정. | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
 | ITEM-003 | 필수 | 오버랩된 코인 액터는 파괴. | VERIFIED | Source/CH4_2/CH4_2CoinPickup.h/.cpp, CH4_2Pawn.h/.cpp, CH4_2PlayerController.h/.cpp | T-ITEM / 2026-10-26 사용자 검증 완료 보고, docs/m05-coin-pickup.md; 개별 로그 미제공 |
@@ -113,16 +113,16 @@
 | GM-001 | 필수 | GameState 클래스 생성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
 | GM-002 | 필수 | Waiting, Playing, Finished를 표현하는 게임 상태 Enum 정의 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
 | GM-003 | 필수 | GameState 클래스에 현재 게임 상태를 표현하는 속성과 남은 시간 속성 정의 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
-| GM-004 | 필수 | GameState 클래스에 우승자 목록 속성을 정의 | TODO | 없음 / CHGameMode, CHGameState, CHHUDWidget | T-MATCH / 미실행 |
+| GM-004 | 필수 | GameState 클래스에 우승자 목록 속성을 정의 | VERIFIED | Source/CH4_2/CH4_2GameMode.h/.cpp, CH4_2GameState.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.h/.cpp; 기존 WBP_PlayerStats | T-MATCH 결과 / docs/m09-match-result.md; 2026-10-28 사용자 M09 검증 완료 보고 |
 | GM-005 | 필수 | 게임 시작 시 게임 상태 속성이 Waiting으로 설정되게끔 로직 작성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
 | GM-006 | 필수 | 첫 플레이어가 접속 시 대기 카운트다운 시작하게끔 로직 작성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
 | GM-007 | 필수 | 서버 타이머가 1초마다 남은 시간 속성을 감소시키고 이를 UI에서 확인할 수 있게 작성. | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | 2026-10-21 사용자 채팅·운전 복귀·기존 코인/타이머 표시 확인; 세부 범위 docs/testing.md |
 | GM-008 | 필수 | 대기 카운트다운이 끝나면 게임 상태 속성이 Playing으로 설정되게끔 로직 작성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
 | GM-009 | 필수 | 서버 타이머가 1초마다 남은 시간 속성을 감소시키고 이를 UI에서 확인할 수 있게 작성. | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | 2026-10-21 사용자 채팅·운전 복귀·기존 코인/타이머 표시 확인; 세부 범위 docs/testing.md |
-| GM-010 | 필수 | 플레이 카운트 다운이 끝나면 게임 상태 속성이 Finished로 설정되게끔 로직 작성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
-| GM-011 | 필수 | 모든 플레이어의 원화를 비교해 가장 많은 원화를 가진 플레이어 탐색 | TODO | 없음 / CHGameMode, CHGameState, CHHUDWidget | T-MATCH / 미실행 |
-| GM-012 | 필수 | 최고 원화가 같으면, 우승자 목록 속성에 모두 넣어서 공동 우승자로 처리 | TODO | 없음 / CHGameMode, CHGameState, CHHUDWidget | T-MATCH / 미실행 |
-| GM-013 | 필수 | 로컬 플레이어의 승리 또는 패배 결과가 UI로 나오게끔 구현 | TODO | 없음 / CHGameMode, CHGameState, CHHUDWidget | T-MATCH / 미실행 |
+| GM-010 | 필수 | 플레이 카운트 다운이 끝나면 게임 상태 속성이 Finished로 설정되게끔 로직 작성 | VERIFIED | Source/CH4_2/CH4_2GameState.h/.cpp, CH4_2GameMode.h/.cpp, CH4_2PlayerController.h/.cpp, CH4_2PlayerStatsWidget.h/.cpp | 2026-10-28 사용자 M09 검증 완료 보고로 이탈 즉시 종료 회귀 수용; 과거 T-MATCH 상태/시간 / 2026-10-21 사용자 검증 완료 보고. GM-006은 2명 접속 조건으로 변경, docs/m03-match-flow.md |
+| GM-011 | 필수 | 모든 플레이어의 원화를 비교해 가장 많은 원화를 가진 플레이어 탐색 | VERIFIED | Source/CH4_2/CH4_2GameMode.h/.cpp, CH4_2GameState.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.h/.cpp; 기존 WBP_PlayerStats | T-MATCH 결과 / docs/m09-match-result.md; 2026-10-28 사용자 M09 검증 완료 보고 |
+| GM-012 | 필수 | 최고 원화가 같으면, 우승자 목록 속성에 모두 넣어서 공동 우승자로 처리 | VERIFIED | Source/CH4_2/CH4_2GameMode.h/.cpp, CH4_2GameState.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.h/.cpp; 기존 WBP_PlayerStats | T-MATCH 결과 / docs/m09-match-result.md; 2026-10-28 사용자 M09 검증 완료 보고 |
+| GM-013 | 필수 | 로컬 플레이어의 승리 또는 패배 결과가 UI로 나오게끔 구현 | VERIFIED | Source/CH4_2/CH4_2GameMode.h/.cpp, CH4_2GameState.h/.cpp, CH4_2PlayerState.h/.cpp, CH4_2PlayerController.cpp, CH4_2PlayerStatsWidget.h/.cpp; 기존 WBP_PlayerStats | T-MATCH 결과 / docs/m09-match-result.md; 2026-10-28 사용자 M09 검증 완료 보고 |
 | WHEEL-001 | 도전 | 좌클릭 시 ServerRPC 함수에서 ApplyDamage() 대신 ApplyPointDamage() 호출 | TODO | 없음 / CHVehiclePawn, CHPlayerState | T-WHEEL / 미실행 |
 | WHEEL-002 | 도전 | 맞은 Bone이 바퀴인지 판별 | TODO | 없음 / CHVehiclePawn, CHPlayerState | T-WHEEL / 미실행 |
 | WHEEL-003 | 도전 | 바퀴를 맞히면 피해 차량의 추가 최대 속도(`BonusMaxSpeed`)에 음수 패널티 적용 | TODO | 없음 / CHVehiclePawn, CHPlayerState | T-WHEEL / 미실행 |
@@ -149,6 +149,8 @@
 
 
 M04 UI 전환 이력: WBP 전환 시 표시 항목을 재검증 대기로 변경했으며, 이후 사용자 기존 코인/타이머 표시 확인 보고로 PS-009/GM-007/GM-009와 M02/M03을 VERIFIED로 복원했다. 서버 데이터·타이머 항목은 유지한다. 현재 UI 생성/표시의 실제 파일 및 최신 검증 기준은 docs/m04-chat-wbp.md를 따른다.
+
+
 
 
 

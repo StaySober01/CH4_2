@@ -423,6 +423,7 @@ void ACH4_2PlayerController::RefreshPlayerStats()
 	if (const ACH4_2PlayerState* CurrentState = BoundPlayerState.Get())
 	{
 		PlayerStatsWidget->SetStats(CurrentState->GetCoins(), CurrentState->GetBonusMaxSpeed());
+		PlayerStatsWidget->SetLocalPlayerId(CurrentState->GetPlayerId());
 	}
 	else
 	{

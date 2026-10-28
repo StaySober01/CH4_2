@@ -14,6 +14,7 @@ class CH4_2_API ACH4_2PlayerState : public APlayerState
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_PlayerId() override;
 
 	UFUNCTION(BlueprintPure, Category="Player Stats")
 	int32 GetCoins() const { return Coins; }

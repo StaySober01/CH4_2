@@ -74,3 +74,7 @@ PostLogin/Logout → 서버 GameMode의 참가 인원 갱신 → Waiting 카운�
 소유 로컬 Pawn의 Started → 인자 없는 ServerAttack. 서버 PC/PS/빙의 확인 및 2초 쿨타임 → 서버 범퍼부터 500cm Visibility Trace → 유효 차량 ApplyDamage. 대상 TakeDamage는 공격자 서버 명중 문맥을 한 번만 소비하고 PS 간 5원 이동을 수행한다.
 돈은 기존 OwnerOnly 상태 복제/서버 알림으로 표시한다. 서버의 양쪽 잔액 합계는 보존하며 각 클라이언트 UI 수신 시각은 다를 수 있다.
 선/명중 파티클은 각 소유 PC Reliable Client RPC로 전송하며 피해량/잔액을 공개하지 않는다. 비권한 직접 TakeDamage/PS 변경은 거부된다. 후입장자는 과거 공격 효과를 받지 않는다. 실제 2인 검증 대기.
+
+## M09 승패
+서버 종료 시점에 Coins를 비교하거나 참가자 Logout에서 남은 참가자를 승자로 확정한다. Phase/EndReason/확정 결과가 같은 GameState 스냅샷으로 모든 연결에 복제된다. 우승자 ID·이름만 공개하며 Coins OwnerOnly 유지.
+Host는 서버 OnMatchChanged, Client는 OnRep_MatchSnapshot으로 기존 WBP를 갱신한다. 본인 PlayerId 도착 시에도 UI 재평가. 결과는 RPC 일회성 알림에 의존하지 않아 후입장에도 전달된다. 종료 이후 이탈/코인 변경으로 결과를 다시 계산하지 않는다. Listen 서버 프로세스 종료 시에는 세션도 종료되므로 승리 전송은 불가능하다.

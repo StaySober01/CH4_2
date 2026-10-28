@@ -18,6 +18,7 @@ public:
 	void SetWaitingForPlayerState();
 	void SetMatchSnapshot(const FCH4_2MatchSnapshot& Snapshot);
 	void SetWaitingForGameState();
+	void SetLocalPlayerId(int32 PlayerId);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -34,6 +35,7 @@ private:
 
 	FCH4_2MatchSnapshot DisplayMatch;
 	bool bHasGameState = false;
+	int32 LocalPlayerId = INDEX_NONE;
 	void RefreshMatchText();
 
 	int32 DisplayCoins = 0;

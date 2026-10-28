@@ -41,6 +41,7 @@ private:
 	void UpdateConnectedPlayers();
 	void AdvanceMatchClock();
 	void PublishMatchSnapshot();
+	void FinalizeMatch(bool bPlayerLeft);
 
 	bool IsPlayerStartAvailable(const APlayerStart* PlayerStart) const;
 };
